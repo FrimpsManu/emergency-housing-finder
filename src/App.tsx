@@ -1,7 +1,25 @@
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import AppLayout from "./components/AppLayout";
+
+import Home from "./pages/Home";
+import Results from "./pages/Results";
+import ResourceDetail from "./pages/ResourceDetail";
+import Saved from "./pages/Saved";
+import SuggestUpdate from "./pages/SuggestUpdate";
+
 export default function App() {
   return (
-    <div className="min-h-screen flex items-center justify-center text-3xl font-semibold">
-      Tailwind is working
-    </div>
+    <BrowserRouter>
+      <AppLayout>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/results" element={<Results />} />
+          <Route path="/resource/:id" element={<ResourceDetail />} />
+          <Route path="/saved" element={<Saved />} />
+          <Route path="/suggest" element={<SuggestUpdate />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AppLayout>
+    </BrowserRouter>
   );
 }
