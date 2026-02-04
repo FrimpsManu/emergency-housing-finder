@@ -1,8 +1,18 @@
+import { useEffect, useState } from "react";
+import { isSaved, saveResource, removeResource } from "../utils/savedResources";
+
 import { useNavigate, useParams } from "react-router-dom";
 
 export default function ResourceDetail() {
   const nav = useNavigate();
   const { id } = useParams();
+  const resourceId = id ?? "unknown";
+  const [saved, setSaved] = useState(false);
+
+useEffect(() => {
+  setSaved(isSaved(resourceId));
+}, [resourceId]);
+
 
   // Placeholder data until dataset integration
   const resource = {
@@ -38,11 +48,25 @@ export default function ResourceDetail() {
         </button>
 
         <button
-          className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          title="Save (coming soon)"
-        >
-          ☆ Save
-        </button>
+  onClick={() => {
+    if (!resourceId) return;
+    if (saved) {
+      removeResource(resourceId);
+      setSaved(false);
+    } else {
+      saveResource({
+        id: resourceId,
+        name: resource.name,
+        city: resource.city,
+        state: resource.state,
+      });
+      setSaved(true);
+    }
+  }}
+  className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+>
+  {saved ? "★ Saved" : "☆ Save"}
+</button>
       </div>
 
       {/* Title */}
