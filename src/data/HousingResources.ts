@@ -1,12 +1,27 @@
+// In HousingResources.ts
 import axios from 'axios';
 
-const apiKey = import.meta.env.RAPID_API_KEY;
-
+const apiKey = import.meta.env.VITE_RAPID_API_KEY;
 type Location = {
     lat: string;
-    long: string;
-    rad: string;
+    lng: string;
+    radius: string;
 }
+
+export type Shelter = {
+    id: string;
+    name: string;
+    address: string;
+    city: string;
+    state: string;
+    zip: string;
+    phone: string;
+    latitude: number;
+    longitude: number;
+    distance: number;
+}
+
+export type HousingResourcesResponse = Shelter[];
 
 function getUserLocation(): Promise<GeolocationPosition> {
   return new Promise((resolve, reject) => {
@@ -24,12 +39,12 @@ function getUserLocation(): Promise<GeolocationPosition> {
 }
 
 
-export default async function HousingResources() {
+export default async function HousingResources(): Promise<HousingResourcesResponse> {
     const position = await getUserLocation();
     const location: Location = {
         lat: position.coords.latitude.toString(),
-        long: position.coords.longitude.toString(),
-        rad: '1.4'
+        lng: position.coords.longitude.toString(),
+        radius: '10'
     };
 
     const query = {
@@ -43,11 +58,10 @@ export default async function HousingResources() {
     };
 
     try {
-        const response = await axios.request(query);
+        const response = await axios.request<HousingResourcesResponse>(query);
         return response.data;
     } catch (error) {
         console.error('Error fetching housing resources:', error);
         throw error;
     }
-
-};
+}
