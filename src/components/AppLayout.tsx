@@ -7,7 +7,7 @@ function NavItem({ to, label }: { to: string; label: string }) {
       end={to === "/"}
       className={({ isActive }) =>
         [
-          "flex-1 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
+          "flex-1 rounded-xl px-3 py-2 text-sm font-medium transition-colors text-center",
           isActive ? "bg-gray-900 text-white" : "text-gray-700 hover:bg-gray-100",
         ].join(" ")
       }
