@@ -233,14 +233,31 @@ function FilterRow({
   onChange: (value: boolean) => void;
 }) {
   return (
-    <label className="flex items-center justify-between rounded-xl border border-gray-200 px-3 py-3">
-      <span className="text-sm text-gray-800">{label}</span>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="h-5 w-5 accent-gray-900"
-      />
-    </label>
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className={[
+        "w-full flex items-center justify-between rounded-xl border px-3 py-3 text-left transition",
+        checked
+          ? "border-gray-900 bg-gray-900 text-white"
+          : "border-gray-200 bg-white text-gray-900 hover:bg-gray-50",
+      ].join(" ")}
+    >
+      <span className="text-sm font-medium">{label}</span>
+      <span
+        className={[
+          "h-6 w-11 rounded-full p-1 transition",
+          checked ? "bg-white/20" : "bg-gray-100",
+        ].join(" ")}
+        aria-hidden
+      >
+        <span
+          className={[
+            "block h-4 w-4 rounded-full bg-white transition",
+            checked ? "translate-x-5" : "translate-x-0",
+          ].join(" ")}
+        />
+      </span>
+    </button>
   );
 }

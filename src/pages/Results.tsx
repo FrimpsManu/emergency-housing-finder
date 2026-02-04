@@ -146,6 +146,10 @@ export default function Results() {
         <p className="text-sm text-gray-600">
           If nothing matches or you’re unsure, calling a local support line is often the fastest
           path.
+        <p className="text-xs text-gray-500">
+          If you’re in immediate danger, call your local emergency number.
+        </p>
+
         </p>
 
         <div className="grid grid-cols-1 gap-2">
