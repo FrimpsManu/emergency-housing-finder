@@ -60,7 +60,10 @@ export default function Results() {
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Options near you</h1>
           <p className="mt-1 text-sm text-gray-600">
-            Location: <span className="font-medium text-gray-800">{filters.location || "—"}</span>
+            Location:{" "}
+            <span className="font-medium text-gray-800">
+              {filters.location || "—"}
+            </span>
           </p>
         </div>
 
@@ -70,6 +73,13 @@ export default function Results() {
         >
           Edit
         </button>
+      </div>
+
+      {/* demo banner */}
+      <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+        <p className="text-xs text-gray-700">
+          Demo mode: sample resources will be replaced with verified 211 data.
+        </p>
       </div>
 
       {/* Active filters */}
@@ -94,20 +104,48 @@ export default function Results() {
         </div>
       )}
 
-      {/* Placeholder area where results will go */}
-      <div className="rounded-2xl bg-white p-4 shadow-sm">
+      {/* Placeholder + Demo CTA */}
+      <div className="rounded-2xl bg-white p-4 shadow-sm space-y-3">
         <p className="text-sm text-gray-700">
           {hasLocation
             ? "Results will appear here once housing data is loaded."
             : "Go back and enter a location to see options."}
         </p>
+
+        <div className="flex flex-col gap-2">
+          {!hasLocation ? (
+            <button
+              onClick={() => nav("/")}
+              className="h-12 rounded-xl bg-gray-900 text-white font-semibold flex items-center justify-center"
+            >
+              Add location
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => nav("/resource/sample-1")}
+                className="h-12 rounded-xl bg-gray-900 text-white font-semibold flex items-center justify-center"
+              >
+                View sample resource (demo)
+              </button>
+
+              <button
+                onClick={() => nav("/")}
+                className="h-12 rounded-xl border border-gray-200 bg-white text-gray-900 font-semibold flex items-center justify-center hover:bg-gray-50"
+              >
+                Edit search
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Emergency fallback (MVP safety) */}
       <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
         <p className="text-sm font-medium text-gray-900">Need help right now?</p>
         <p className="text-sm text-gray-600">
-          If nothing matches or you’re unsure, calling a local support line is often the fastest path.
+          If nothing matches or you’re unsure, calling a local support line is often the fastest
+          path.
         </p>
 
         <div className="grid grid-cols-1 gap-2">
