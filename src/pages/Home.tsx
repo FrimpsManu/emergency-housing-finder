@@ -7,6 +7,18 @@ type Location = {
   radius: string;
 };
 
+async function fetchDisasterNews(lat: string, lng: string) {
+  try {
+    const response = await fetch(
+      `http://localhost:5000/api/news?lat=${lat}&lng=${lng}`
+    );
+    const data = await response.json();
+    return data.result;
+  } catch (error) {
+    console.error("Error fetching disaster news:", error);
+  }
+}
+
 export default function Home() {
   const navigate = useNavigate();
 
@@ -75,6 +87,7 @@ export default function Home() {
       });
   }
 
+  // Effect 1: Get user location on first mount (only if not already saved)
   useEffect(() => {
     // Only query if we don't already have a location
     if (detectedLocation) {
@@ -99,8 +112,17 @@ export default function Home() {
         console.error("Error getting user location:", error);
         setLocationStatus("error");
       });
-  }, [detectedLocation]);
+  }); // Empty array - only run once on mount
 
+  // Effect 2: Fetch disaster news when location changes
+  useEffect(() => {
+    if (detectedLocation) {
+      fetchDisasterNews(detectedLocation.lat, detectedLocation.lng)
+        .then(data => {
+          console.log("Disaster news:", data);
+        });
+    }
+  }, [detectedLocation]); // Runs when detectedLocation changes
   function handleSearch() {
     // Use detected location if available and manual input is empty
     const locationParam = manualLocation.trim()
