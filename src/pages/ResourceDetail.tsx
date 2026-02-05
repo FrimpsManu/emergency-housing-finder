@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
-import { isSaved, saveResource, removeResource } from "../utils/savedResources";
-
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { isSaved, saveResource, removeResource } from "../utils/savedResources";
 
 export default function ResourceDetail() {
   const nav = useNavigate();
@@ -9,14 +8,13 @@ export default function ResourceDetail() {
   const resourceId = id ?? "unknown";
   const [saved, setSaved] = useState(false);
 
-useEffect(() => {
-  setSaved(isSaved(resourceId));
-}, [resourceId]);
-
+  useEffect(() => {
+    setSaved(isSaved(resourceId));
+  }, [resourceId]);
 
   // Placeholder data until dataset integration
   const resource = {
-    id: id ?? "unknown",
+    id: resourceId,
     name: "Sample Emergency Shelter",
     type: "Emergency Shelter",
     city: "Sample City",
@@ -32,9 +30,31 @@ useEffect(() => {
     lastVerified: "2026-02-01",
   };
 
-  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-    resource.address
-  )}`;
+  const mapsUrl = useMemo(() => {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(resource.address)}`;
+  }, [resource.address]);
+
+  // Tel:
+  const telHref = useMemo(() => {
+    const cleaned = resource.phone.replace(/[^\d+]/g, "");
+    return `tel:${cleaned}`;
+  }, [resource.phone]);
+
+  function toggleSave() {
+    if (saved) {
+      removeResource(resourceId);
+      setSaved(false);
+      return;
+    }
+
+    saveResource({
+      id: resourceId,
+      name: resource.name,
+      city: resource.city,
+      state: resource.state,
+    });
+    setSaved(true);
+  }
 
   return (
     <div className="space-y-4">
@@ -48,25 +68,16 @@ useEffect(() => {
         </button>
 
         <button
-  onClick={() => {
-    if (!resourceId) return;
-    if (saved) {
-      removeResource(resourceId);
-      setSaved(false);
-    } else {
-      saveResource({
-        id: resourceId,
-        name: resource.name,
-        city: resource.city,
-        state: resource.state,
-      });
-      setSaved(true);
-    }
-  }}
-  className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
->
-  {saved ? "★ Saved" : "☆ Save"}
-</button>
+          onClick={toggleSave}
+          className={[
+            "rounded-xl border px-3 py-2 text-sm font-medium transition",
+            saved
+              ? "border-gray-900 bg-gray-900 text-white"
+              : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50",
+          ].join(" ")}
+        >
+          {saved ? "★ Saved" : "☆ Save"}
+        </button>
       </div>
 
       {/* Title */}
@@ -83,7 +94,7 @@ useEffect(() => {
       {/* Primary actions */}
       <div className="grid grid-cols-1 gap-2">
         <a
-          href={`tel:${resource.phone}`}
+          href={telHref}
           className="h-12 rounded-xl bg-gray-900 text-white font-semibold flex items-center justify-center"
         >
           Call Now
@@ -97,6 +108,40 @@ useEffect(() => {
         >
           Directions
         </a>
+      </div>
+
+      {/* Calling checklist (crisis-first UX) */}
+      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
+        <p className="text-sm font-medium text-gray-900">What to expect when you call</p>
+
+        <p className="text-xs text-gray-600">
+          Based on this listing: ID required = {resource.idRequired ? "Yes" : "No"} • Family-friendly
+          = {resource.familyFriendly ? "Yes" : "No"}
+        </p>
+
+        <div className="space-y-2 text-sm text-gray-700">
+          <div className="flex gap-2">
+            <span className="mt-0.5">•</span>
+            <span>Ask if they have space available right now (beds or family units).</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="mt-0.5">•</span>
+            <span>Ask about intake hours and whether you need to arrive by a certain time.</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="mt-0.5">•</span>
+            <span>Ask what documents are needed (ID, proof of residency, referral, etc.).</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="mt-0.5">•</span>
+            <span>Ask if they serve your situation (families, youth, women, LGBTQ+).</span>
+          </div>
+        </div>
+
+        <div className="rounded-xl bg-gray-50 p-3 text-xs text-gray-600">
+          Availability can change quickly. If you can’t reach them, try another option or call 211 for
+          the fastest referrals.
+        </div>
       </div>
 
       {/* Key info */}
@@ -130,9 +175,7 @@ useEffect(() => {
       <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-2">
         <p className="text-sm font-medium text-gray-900">Notes</p>
         <p className="text-sm text-gray-700">{resource.notes}</p>
-        <p className="text-xs text-gray-600">
-          Availability can change — always call ahead.
-        </p>
+        <p className="text-xs text-gray-600">Availability can change — always call ahead.</p>
       </div>
 
       {/* Trust */}
