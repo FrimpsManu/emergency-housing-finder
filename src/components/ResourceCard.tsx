@@ -6,6 +6,7 @@ type ResourceCardProps = {
   phone: string;
   directionsUrl?: string;
   onOpen?: () => void;
+  reason?: string;
 };
 
 export default function ResourceCard({
@@ -16,6 +17,7 @@ export default function ResourceCard({
   phone,
   directionsUrl,
   onOpen,
+  reason,
 }: ResourceCardProps) {
   return (
     <div
@@ -29,6 +31,12 @@ export default function ResourceCard({
         <p className="text-sm text-gray-600">
           {city}, {state}
         </p>
+
+        {reason && (
+    <p className="mt-1 text-xs text-gray-600">
+      <span className="font-medium text-gray-700">Shown because:</span> {reason}
+    </p>
+  )}
       </div>
 
       <div className="flex flex-wrap gap-2">

@@ -22,6 +22,9 @@ async function fetchDisasterNews(lat: string, lng: string) {
 export default function Home() {
   const navigate = useNavigate();
 
+  // Crisis-first mode
+  const [helpNow, setHelpNow] = useState(false);
+
   // Location detection - initialize from localStorage if available
   const [detectedLocation, setDetectedLocation] = useState<Location | null>(() => {
     const savedLocation = localStorage.getItem("detectedLocation");
@@ -35,9 +38,8 @@ export default function Home() {
     }
     return null;
   });
-  
+
   const [locationStatus, setLocationStatus] = useState<"loading" | "success" | "error">(() => {
-    // If we have a saved location, start in success state
     const savedLocation = localStorage.getItem("detectedLocation");
     return savedLocation ? "success" : "loading";
   });
@@ -70,11 +72,10 @@ export default function Home() {
     setLocationStatus("loading");
     getUserLocation()
       .then((position) => {
-        console.log("User position:", position);
         const location: Location = {
           lat: position.coords.latitude.toString(),
           lng: position.coords.longitude.toString(),
-          radius: "10", // miles
+          radius: "10",
         };
 
         setDetectedLocation(location);
@@ -89,23 +90,18 @@ export default function Home() {
 
   // Effect 1: Get user location on first mount (only if not already saved)
   useEffect(() => {
-    // Only query if we don't already have a location
-    if (detectedLocation) {
-      return;
-    }
+    if (detectedLocation) return;
 
     getUserLocation()
       .then((position) => {
-        console.log("User position:", position);
         const location: Location = {
           lat: position.coords.latitude.toString(),
           lng: position.coords.longitude.toString(),
-          radius: "10", // miles
+          radius: "10",
         };
 
         setDetectedLocation(location);
         setLocationStatus("success");
-        // Save to localStorage for future visits
         localStorage.setItem("detectedLocation", JSON.stringify(location));
       })
       .catch((error) => {
@@ -124,19 +120,16 @@ export default function Home() {
     }
   }, [detectedLocation]); // Runs when detectedLocation changes
   function handleSearch() {
-    // Use detected location if available and manual input is empty
     const locationParam = manualLocation.trim()
       ? manualLocation
       : detectedLocation
       ? `${detectedLocation.lat},${detectedLocation.lng}`
       : "";
 
-    if (!locationParam) {
-      return; // Don't navigate if no location
-    }
+    if (!locationParam) return;
 
     navigate(
-      `/results?location=${encodeURIComponent(locationParam)}&urgent=${urgent}&noId=${noId}&family=${family}&freeOnly=${freeOnly}`
+      `/results?location=${encodeURIComponent(locationParam)}&helpNow=${helpNow}&urgent=${urgent}&noId=${noId}&family=${family}&freeOnly=${freeOnly}`
     );
   }
 
@@ -154,11 +147,41 @@ export default function Home() {
         </p>
       </div>
 
+      {/* Crisis-first toggle */}
+      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-2">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-gray-900">I need help right now</p>
+            <p className="mt-1 text-sm text-gray-600">
+              We’ll keep it simple and prioritize speed.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setHelpNow((v) => !v)}
+            className={[
+              "h-10 px-3 rounded-xl border text-sm font-medium transition",
+              helpNow
+                ? "bg-gray-900 text-white border-gray-900"
+                : "bg-white text-gray-800 border-gray-200 hover:bg-gray-50",
+            ].join(" ")}
+          >
+            {helpNow ? "On" : "Off"}
+          </button>
+        </div>
+
+        {helpNow && (
+          <div className="rounded-xl bg-gray-50 p-3 text-sm text-gray-700">
+            If you’re in immediate danger, call your local emergency number.
+          </div>
+        )}
+      </div>
+
       {/* Location Section */}
       <div className="rounded-2xl bg-white p-4 shadow-sm space-y-3">
         <label className="text-sm font-medium text-gray-700">Location</label>
 
-        {/* Auto-detected location status */}
         {locationStatus === "loading" && (
           <div className="flex items-center gap-3 rounded-xl border border-gray-200 px-3 py-3">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-900"></div>
@@ -169,9 +192,7 @@ export default function Home() {
         {locationStatus === "success" && !manualLocation && (
           <div className="rounded-xl bg-gray-900 px-3 py-3">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-white">
-                ✓ Using your current location
-              </p>
+              <p className="text-sm text-white">✓ Using your current location</p>
               <button
                 onClick={refreshLocation}
                 className="text-xs text-white underline hover:text-gray-300"
@@ -190,7 +211,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* Manual location input - always visible */}
         <div className="space-y-2">
           <input
             type="text"
@@ -208,30 +228,22 @@ export default function Home() {
       </div>
 
       {/* Filters */}
-      <div className="rounded-2xl bg-white p-4 shadow-sm space-y-3">
-        <p className="text-sm font-medium text-gray-700">Your situation</p>
+      {!helpNow ? (
+        <div className="rounded-2xl bg-white p-4 shadow-sm space-y-3">
+          <p className="text-sm font-medium text-gray-700">Your situation</p>
 
-        <FilterRow
-          label="I need housing urgently"
-          checked={urgent}
-          onChange={setUrgent}
-        />
-        <FilterRow
-          label="I don't have ID"
-          checked={noId}
-          onChange={setNoId}
-        />
-        <FilterRow
-          label="I am with family"
-          checked={family}
-          onChange={setFamily}
-        />
-        <FilterRow
-          label="I need free housing"
-          checked={freeOnly}
-          onChange={setFreeOnly}
-        />
-      </div>
+          <FilterRow label="I need housing urgently" checked={urgent} onChange={setUrgent} />
+          <FilterRow label="I don't have ID" checked={noId} onChange={setNoId} />
+          <FilterRow label="I am with family" checked={family} onChange={setFamily} />
+          <FilterRow label="I need free housing" checked={freeOnly} onChange={setFreeOnly} />
+        </div>
+      ) : (
+        <div className="rounded-2xl bg-white p-4 shadow-sm space-y-3">
+          <p className="text-sm font-medium text-gray-700">Quick options</p>
+          <FilterRow label="I don't have ID" checked={noId} onChange={setNoId} />
+          <FilterRow label="I am with family" checked={family} onChange={setFamily} />
+        </div>
+      )}
 
       {/* CTA */}
       <button
@@ -255,14 +267,31 @@ function FilterRow({
   onChange: (value: boolean) => void;
 }) {
   return (
-    <label className="flex items-center justify-between rounded-xl border border-gray-200 px-3 py-3">
-      <span className="text-sm text-gray-800">{label}</span>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="h-5 w-5 accent-gray-900"
-      />
-    </label>
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className={[
+        "w-full flex items-center justify-between rounded-xl border px-3 py-3 text-left transition",
+        checked
+          ? "border-gray-900 bg-gray-900 text-white"
+          : "border-gray-200 bg-white text-gray-900 hover:bg-gray-50",
+      ].join(" ")}
+    >
+      <span className="text-sm font-medium">{label}</span>
+      <span
+        className={[
+          "h-6 w-11 rounded-full p-1 transition",
+          checked ? "bg-white/20" : "bg-gray-100",
+        ].join(" ")}
+        aria-hidden
+      >
+        <span
+          className={[
+            "block h-4 w-4 rounded-full bg-white transition",
+            checked ? "translate-x-5" : "translate-x-0",
+          ].join(" ")}
+        />
+      </span>
+    </button>
   );
 }

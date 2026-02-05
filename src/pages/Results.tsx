@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 type Filters = {
   location: string;
+  helpNow: boolean;
   urgent: boolean;
   noId: boolean;
   family: boolean;
@@ -21,6 +22,7 @@ export default function Results() {
     const sp = new URLSearchParams(loc.search);
     return {
       location: sp.get("location") ?? "",
+      helpNow: parseBool(sp.get("helpNow")),
       urgent: parseBool(sp.get("urgent")),
       noId: parseBool(sp.get("noId")),
       family: parseBool(sp.get("family")),
@@ -29,6 +31,7 @@ export default function Results() {
   }, [loc.search]);
 
   const activeChips = useMemo(() => {
+    // Don’t show helpNow as a removable chip (it’s a mode)
     const chips: { key: keyof Filters; label: string }[] = [];
     if (filters.urgent) chips.push({ key: "urgent", label: "Urgent" });
     if (filters.noId) chips.push({ key: "noId", label: "No ID" });
@@ -54,13 +57,27 @@ export default function Results() {
 
   const hasLocation = filters.location.trim().length > 0;
 
+  const reasonText = useMemo(() => {
+  const reasons: string[] = [];
+  if (filters.helpNow) reasons.push("Help Now mode");
+  if (filters.urgent) reasons.push("Urgent");
+  if (filters.noId) reasons.push("No ID");
+  if (filters.family) reasons.push("Family");
+  if (filters.freeOnly) reasons.push("Free only");
+  return reasons.length ? reasons.join(" + ") : "your location";
+}, [filters.helpNow, filters.urgent, filters.noId, filters.family, filters.freeOnly]);
+
+
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Options near you</h1>
           <p className="mt-1 text-sm text-gray-600">
-            Location: <span className="font-medium text-gray-800">{filters.location || "—"}</span>
+            Location:{" "}
+            <span className="font-medium text-gray-800">
+              {filters.location || "—"}
+            </span>
           </p>
         </div>
 
@@ -70,6 +87,42 @@ export default function Results() {
         >
           Edit
         </button>
+      </div>
+
+      {/* Help Now: show fast actions at the top */}
+      {filters.helpNow && (
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
+          <p className="text-sm font-semibold text-gray-900">Fast help</p>
+          <p className="text-sm text-gray-600">
+            If you can’t find a match quickly, calling is often the fastest path.
+          </p>
+
+          <div className="grid grid-cols-1 gap-2">
+            <a
+              href="tel:211"
+              className="h-12 rounded-xl bg-gray-900 text-white font-semibold flex items-center justify-center"
+            >
+              Call 211 for housing help
+            </a>
+            <a
+              href="tel:988"
+              className="h-12 rounded-xl border border-gray-200 bg-white text-gray-900 font-semibold flex items-center justify-center hover:bg-gray-50"
+            >
+              Call 988 (crisis support)
+            </a>
+          </div>
+
+          <p className="text-xs text-gray-500">
+            If you’re in immediate danger, call your local emergency number.
+          </p>
+        </div>
+      )}
+
+      {/* demo banner */}
+      <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+        <p className="text-xs text-gray-700">
+          Demo mode: sample resources will be replaced with verified 211 data.
+        </p>
       </div>
 
       {/* Active filters */}
@@ -94,20 +147,65 @@ export default function Results() {
         </div>
       )}
 
-      {/* Placeholder area where results will go */}
-      <div className="rounded-2xl bg-white p-4 shadow-sm">
+      {/* Placeholder + Demo CTA */}
+      <div className="rounded-2xl bg-white p-4 shadow-sm space-y-3">
         <p className="text-sm text-gray-700">
           {hasLocation
             ? "Results will appear here once housing data is loaded."
             : "Go back and enter a location to see options."}
         </p>
+        {hasLocation && (
+  <>
+    <p className="text-xs text-gray-600">
+      <span className="font-medium text-gray-700">Shown because:</span>{" "}
+      {reasonText}
+    </p>
+
+    {filters.helpNow && (
+      <p className="text-xs text-gray-500">
+        Tip: We prioritize options that are free and don’t require ID.
+      </p>
+    )}
+  </>
+)}
+
+        <div className="flex flex-col gap-2">
+          {!hasLocation ? (
+            <button
+              onClick={() => nav("/")}
+              className="h-12 rounded-xl bg-gray-900 text-white font-semibold flex items-center justify-center"
+            >
+              Add location
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => nav("/resource/sample-1")}
+                className="h-12 rounded-xl bg-gray-900 text-white font-semibold flex items-center justify-center"
+              >
+                View sample resource (demo)
+              </button>
+
+              <button
+                onClick={() => nav("/")}
+                className="h-12 rounded-xl border border-gray-200 bg-white text-gray-900 font-semibold flex items-center justify-center hover:bg-gray-50"
+              >
+                Edit search
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* Emergency fallback (MVP safety) */}
+      {/* Emergency fallback (always visible) */}
       <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
         <p className="text-sm font-medium text-gray-900">Need help right now?</p>
         <p className="text-sm text-gray-600">
-          If nothing matches or you’re unsure, calling a local support line is often the fastest path.
+          If nothing matches or you’re unsure, calling a local support line is often the fastest
+          path.
+        </p>
+        <p className="text-xs text-gray-500">
+          If you’re in immediate danger, call your local emergency number.
         </p>
 
         <div className="grid grid-cols-1 gap-2">
