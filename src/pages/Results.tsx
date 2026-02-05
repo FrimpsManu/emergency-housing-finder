@@ -57,6 +57,17 @@ export default function Results() {
 
   const hasLocation = filters.location.trim().length > 0;
 
+  const reasonText = useMemo(() => {
+  const reasons: string[] = [];
+  if (filters.helpNow) reasons.push("Help Now mode");
+  if (filters.urgent) reasons.push("Urgent");
+  if (filters.noId) reasons.push("No ID");
+  if (filters.family) reasons.push("Family");
+  if (filters.freeOnly) reasons.push("Free only");
+  return reasons.length ? reasons.join(" + ") : "your location";
+}, [filters.helpNow, filters.urgent, filters.noId, filters.family, filters.freeOnly]);
+
+
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
@@ -143,6 +154,20 @@ export default function Results() {
             ? "Results will appear here once housing data is loaded."
             : "Go back and enter a location to see options."}
         </p>
+        {hasLocation && (
+  <>
+    <p className="text-xs text-gray-600">
+      <span className="font-medium text-gray-700">Shown because:</span>{" "}
+      {reasonText}
+    </p>
+
+    {filters.helpNow && (
+      <p className="text-xs text-gray-500">
+        Tip: We prioritize options that are free and don’t require ID.
+      </p>
+    )}
+  </>
+)}
 
         <div className="flex flex-col gap-2">
           {!hasLocation ? (
