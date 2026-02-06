@@ -1,5 +1,7 @@
 import { useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import ResourceCard from "../components/ResourceCard";
+import { RESOURCES } from "../data/resources";
 
 type Filters = {
   location: string;
@@ -31,7 +33,6 @@ export default function Results() {
   }, [loc.search]);
 
   const activeChips = useMemo(() => {
-    // Don’t show helpNow as a removable chip (it’s a mode)
     const chips: { key: keyof Filters; label: string }[] = [];
     if (filters.urgent) chips.push({ key: "urgent", label: "Urgent" });
     if (filters.noId) chips.push({ key: "noId", label: "No ID" });
@@ -57,16 +58,24 @@ export default function Results() {
 
   const hasLocation = filters.location.trim().length > 0;
 
-  const reasonText = useMemo(() => {
-  const reasons: string[] = [];
-  if (filters.helpNow) reasons.push("Help Now mode");
-  if (filters.urgent) reasons.push("Urgent");
-  if (filters.noId) reasons.push("No ID");
-  if (filters.family) reasons.push("Family");
-  if (filters.freeOnly) reasons.push("Free only");
-  return reasons.length ? reasons.join(" + ") : "your location";
-}, [filters.helpNow, filters.urgent, filters.noId, filters.family, filters.freeOnly]);
+  const filtered = useMemo(() => {
+    let items = [...RESOURCES];
 
+    if (filters.freeOnly) items = items.filter((r) => r.cost === "Free");
+    if (filters.noId) items = items.filter((r) => r.idRequired === false);
+    if (filters.family) items = items.filter((r) => r.familyFriendly === true);
+
+    // “Help Now” prioritization (not filtering): sort free + noID first
+    if (filters.helpNow) {
+      items.sort((a, b) => {
+        const score = (r: typeof a) =>
+          (r.cost === "Free" ? 2 : 0) + (!r.idRequired ? 2 : 0) + (r.familyFriendly ? 1 : 0);
+        return score(b) - score(a);
+      });
+    }
+
+    return items;
+  }, [filters.freeOnly, filters.noId, filters.family, filters.helpNow]);
 
   return (
     <div className="space-y-4">
@@ -74,10 +83,7 @@ export default function Results() {
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Options near you</h1>
           <p className="mt-1 text-sm text-gray-600">
-            Location:{" "}
-            <span className="font-medium text-gray-800">
-              {filters.location || "—"}
-            </span>
+            Location: <span className="font-medium text-gray-800">{filters.location || "—"}</span>
           </p>
         </div>
 
@@ -89,14 +95,12 @@ export default function Results() {
         </button>
       </div>
 
-      {/* Help Now: show fast actions at the top */}
       {filters.helpNow && (
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-2">
           <p className="text-sm font-semibold text-gray-900">Fast help</p>
           <p className="text-sm text-gray-600">
             If you can’t find a match quickly, calling is often the fastest path.
           </p>
-
           <div className="grid grid-cols-1 gap-2">
             <a
               href="tel:211"
@@ -111,21 +115,9 @@ export default function Results() {
               Call 988 (crisis support)
             </a>
           </div>
-
-          <p className="text-xs text-gray-500">
-            If you’re in immediate danger, call your local emergency number.
-          </p>
         </div>
       )}
 
-      {/* demo banner */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
-        <p className="text-xs text-gray-700">
-          Demo mode: sample resources will be replaced with verified 211 data.
-        </p>
-      </div>
-
-      {/* Active filters */}
       {activeChips.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {activeChips.map((c) => (
@@ -140,89 +132,58 @@ export default function Results() {
           ))}
           <button
             onClick={clearFilters}
-            className="rounded-full bg-white px-3 py-1 text-xs font-medium text-gray-700 border border-gray-200 hover:bg-gray-50"
+            className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
           >
             Clear all
           </button>
         </div>
       )}
 
-      {/* Placeholder + Demo CTA */}
-      <div className="rounded-2xl bg-white p-4 shadow-sm space-y-3">
-        <p className="text-sm text-gray-700">
-          {hasLocation
-            ? "Results will appear here once housing data is loaded."
-            : "Go back and enter a location to see options."}
-        </p>
-        {hasLocation && (
-  <>
-    <p className="text-xs text-gray-600">
-      <span className="font-medium text-gray-700">Shown because:</span>{" "}
-      {reasonText}
-    </p>
-
-    {filters.helpNow && (
-      <p className="text-xs text-gray-500">
-        Tip: We prioritize options that are free and don’t require ID.
-      </p>
-    )}
-  </>
-)}
-
-        <div className="flex flex-col gap-2">
-          {!hasLocation ? (
-            <button
-              onClick={() => nav("/")}
-              className="h-12 rounded-xl bg-gray-900 text-white font-semibold flex items-center justify-center"
-            >
-              Add location
-            </button>
-          ) : (
-            <>
-              <button
-                onClick={() => nav("/resource/sample-1")}
-                className="h-12 rounded-xl bg-gray-900 text-white font-semibold flex items-center justify-center"
-              >
-                View sample resource (demo)
-              </button>
-
-              <button
-                onClick={() => nav("/")}
-                className="h-12 rounded-xl border border-gray-200 bg-white text-gray-900 font-semibold flex items-center justify-center hover:bg-gray-50"
-              >
-                Edit search
-              </button>
-            </>
-          )}
+      {!hasLocation ? (
+        <div className="rounded-2xl bg-white p-4 shadow-sm space-y-3">
+          <p className="text-sm text-gray-700">Go back and enter a location to see options.</p>
+          <button
+            onClick={() => nav("/")}
+            className="h-12 rounded-xl bg-gray-900 text-white font-semibold flex items-center justify-center"
+          >
+            Add location
+          </button>
         </div>
-      </div>
-
-      {/* Emergency fallback (always visible) */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
-        <p className="text-sm font-medium text-gray-900">Need help right now?</p>
-        <p className="text-sm text-gray-600">
-          If nothing matches or you’re unsure, calling a local support line is often the fastest
-          path.
-        </p>
-        <p className="text-xs text-gray-500">
-          If you’re in immediate danger, call your local emergency number.
-        </p>
-
-        <div className="grid grid-cols-1 gap-2">
+      ) : filtered.length === 0 ? (
+        <div className="rounded-2xl bg-white p-4 shadow-sm space-y-3">
+          <p className="text-sm font-medium text-gray-900">No matches for these filters</p>
+          <p className="text-sm text-gray-600">
+            Try removing one filter or call 211 to get immediate referrals.
+          </p>
           <a
             href="tel:211"
             className="h-12 rounded-xl bg-gray-900 text-white font-semibold flex items-center justify-center"
           >
-            Call 211 for housing help
-          </a>
-          <a
-            href="tel:988"
-            className="h-12 rounded-xl border border-gray-200 bg-white text-gray-900 font-semibold flex items-center justify-center hover:bg-gray-50"
-          >
-            Call 988 (crisis support)
+            Call 211
           </a>
         </div>
-      </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((r) => {
+            const directionsUrl = r.address
+              ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address)}`
+              : undefined;
+
+            return (
+              <ResourceCard
+                key={r.id}
+                name={r.name}
+                city={r.city}
+                state={r.state}
+                tags={r.tags}
+                phone={r.phone}
+                directionsUrl={directionsUrl}
+                onOpen={() => nav(`/resource/${r.id}`)}
+              />
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

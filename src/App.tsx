@@ -6,10 +6,12 @@ import Results from "./pages/Results";
 import ResourceDetail from "./pages/ResourceDetail";
 import Saved from "./pages/Saved";
 import SuggestUpdate from "./pages/SuggestUpdate";
+import ScrollToTop from "./components/ScrollToTop";
 
 export default function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <AppLayout>
         <Routes>
           <Route path="/" element={<Home />} />
