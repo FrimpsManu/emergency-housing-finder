@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { checkDisastersForAllUsers } from './disasterMonitor';
+import { checkDisastersForAllUsers } from "./disasterMonitor";
 
 const webhookRouter = Router();
 
