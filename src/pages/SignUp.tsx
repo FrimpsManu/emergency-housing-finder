@@ -39,6 +39,22 @@ export default function SignUp() {
   // Auto-detect location on component mount
   useEffect(() => {
     detectLocation();
+    
+    // Load Google Places API - check both window.google AND existing script tag
+    const loadGoogleMapsScript = () => {
+      // Check if already loaded or loading
+      if (window.google) return;
+      const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+      if (existingScript) return;
+      
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_MAPS_API}&libraries=places`;
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+    };
+    
+    loadGoogleMapsScript();
   }, []);
 
   function getUserLocation(): Promise<GeolocationPosition> {
@@ -56,8 +72,12 @@ export default function SignUp() {
     });
   }
 
-  function detectLocation() {
-    setLocationStatus("loading");
+  function detectLocation(isRetry: boolean = false) {
+    // Only set to loading if it's not a retry (prevents flicker)
+    if (!isRetry) {
+      setLocationStatus("loading");
+    }
+    
     getUserLocation()
       .then((position) => {
         const location: Location = {
@@ -66,6 +86,7 @@ export default function SignUp() {
         };
         setDetectedLocation(location);
         setLocationStatus("success");
+        setUseManualLocation(false); // Switch back to auto-detected location
       })
       .catch((error) => {
         console.error("Error getting user location:", error);
@@ -144,7 +165,7 @@ export default function SignUp() {
     }
 
     try {
-      const response = await fetch("http://localhost:5000/api/users", {
+      const response = await fetch("/api/users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -190,7 +211,7 @@ export default function SignUp() {
 
   const sendPhoneVerificationCode = async (id: number) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/users/${id}/verify/phone/send`, {
+      const response = await fetch(`/api/users/${id}/verify/phone/send`, {
         method: "POST",
       });
 
@@ -204,7 +225,7 @@ export default function SignUp() {
 
   const sendEmailVerificationCode = async (id: number) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/users/${id}/verify/email/send`, {
+      const response = await fetch(`/api/users/${id}/verify/email/send`, {
         method: "POST",
       });
 
@@ -222,7 +243,7 @@ export default function SignUp() {
     setErrorMessage("");
 
     try {
-      const response = await fetch(`http://localhost:5000/api/users/${userId}/verify/phone`, {
+      const response = await fetch(`/api/users/${userId}/verify/phone`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -259,7 +280,7 @@ export default function SignUp() {
     setErrorMessage("");
 
     try {
-      const response = await fetch(`http://localhost:5000/api/users/${userId}/verify/email`, {
+      const response = await fetch(`/api/users/${userId}/verify/email`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -526,8 +547,8 @@ export default function SignUp() {
           We need your location to send you relevant disaster alerts
         </p>
 
-        {/* Auto-detecting location */}
-        {locationStatus === "loading" && (
+        {/* Initial loading (first time only) */}
+        {locationStatus === "loading" && !detectedLocation && !useManualLocation && (
           <div className="flex items-center gap-3 rounded-xl border border-gray-200 px-3 py-3">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-900"></div>
             <span className="text-sm text-gray-600">Detecting your location...</span>
@@ -539,15 +560,15 @@ export default function SignUp() {
           <div className="rounded-xl bg-green-50 border border-green-200 px-3 py-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-700">✓ Location detected</p>
-                <p className="mt-1 text-xs text-gray-700">
+                <p className="text-sm font-medium text-green-900">✓ Location detected</p>
+                <p className="mt-1 text-xs text-green-700">
                   Lat: {parseFloat(detectedLocation.lat).toFixed(4)}, Lng: {parseFloat(detectedLocation.lng).toFixed(4)}
                 </p>
               </div>
               <button
                 type="button"
-                onClick={detectLocation}
-                className="text-xs text-gray-700 underline hover:text-gray-900"
+                onClick={() => detectLocation(true)}
+                className="text-xs text-green-700 underline hover:text-green-900"
               >
                 Refresh
               </button>
@@ -555,7 +576,7 @@ export default function SignUp() {
             <button
               type="button"
               onClick={() => setUseManualLocation(true)}
-              className="mt-2 text-xs text-gray-700 underline hover:text-gray-900"
+              className="mt-2 text-xs text-green-700 underline hover:text-green-900"
             >
               Enter location manually instead
             </button>
@@ -565,11 +586,11 @@ export default function SignUp() {
         {/* Location detection failed - prompt manual entry */}
         {locationStatus === "error" && !useManualLocation && (
           <div className="space-y-3">
-            <div className="rounded-xl bg-gray-50 px-3 py-3">
-              <p className="text-sm font-medium text-gray-900">
+            <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-3">
+              <p className="text-sm font-medium text-amber-900">
                 Unable to detect your location
               </p>
-              <p className="mt-1 text-xs text-gray-700">
+              <p className="mt-1 text-xs text-amber-700">
                 Please allow location access or enter your coordinates manually below.
               </p>
             </div>
@@ -582,7 +603,7 @@ export default function SignUp() {
             </button>
             <button
               type="button"
-              onClick={detectLocation}
+              onClick={() => detectLocation(true)}
               className="w-full rounded-xl border border-gray-300 px-3 py-3 text-sm font-medium text-gray-900 hover:bg-gray-50 transition"
             >
               Try Auto-Detect Again
@@ -594,64 +615,57 @@ export default function SignUp() {
         {useManualLocation && (
           <div className="space-y-3">
             <div>
-              <label htmlFor="latitude" className="block text-xs font-medium text-gray-700 mb-1">
-                Latitude <span className="text-red-500">*</span>
+              <label htmlFor="location-search" className="block text-xs font-medium text-gray-700 mb-1">
+                Search for your location <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
-                id="latitude"
-                required
-                value={manualLocation.latitude}
-                onChange={(e) => setManualLocation({ ...manualLocation, latitude: e.target.value })}
+                id="location-search"
+                placeholder="Enter city, address, or ZIP code"
+                onFocus={(e) => {
+                  // Initialize Google Places Autocomplete
+                  if (window.google && !e.target.dataset.initialized) {
+                    const autocomplete = new window.google.maps.places.Autocomplete(e.target, {
+                      types: ['geocode'],
+                      fields: ['geometry', 'formatted_address']
+                    });
+                    
+                    autocomplete.addListener('place_changed', () => {
+                      const place = autocomplete.getPlace();
+                      if (place.geometry && place.geometry.location) {
+                        setManualLocation({
+                          latitude: place.geometry.location.lat().toString(),
+                          longitude: place.geometry.location.lng().toString()
+                        });
+                      }
+                    });
+                    
+                    e.target.dataset.initialized = 'true';
+                  }
+                }}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
-                placeholder="e.g., 32.5149"
               />
             </div>
-            <div>
-              <label htmlFor="longitude" className="block text-xs font-medium text-gray-700 mb-1">
-                Longitude <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                id="longitude"
-                required
-                value={manualLocation.longitude}
-                onChange={(e) => setManualLocation({ ...manualLocation, longitude: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
-                placeholder="e.g., -92.6344"
-              />
-            </div>
+            
             {manualLocation.latitude && manualLocation.longitude && (
               <div className="rounded-lg bg-green-50 border border-green-200 px-3 py-2">
                 <p className="text-xs text-green-800">
-                  ✓ Manual location set: {parseFloat(manualLocation.latitude).toFixed(4)}, {parseFloat(manualLocation.longitude).toFixed(4)}
+                  ✓ Location set: {parseFloat(manualLocation.latitude).toFixed(4)}, {parseFloat(manualLocation.longitude).toFixed(4)}
                 </p>
               </div>
             )}
+            
             <p className="text-xs text-gray-500">
-              💡 Tip: You can find your coordinates on{" "}
-              <a 
-                href="https://www.google.com/maps" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:underline"
-              >
-                Google Maps
-              </a>
-              {" "}by right-clicking any location.
+              💡 Start typing to search for any address, city, or landmark
             </p>
-            {locationStatus === "success" && detectedLocation && (
-              <button
-                type="button"
-                onClick={() => {
-                  setUseManualLocation(false);
-                  setManualLocation({ latitude: "", longitude: "" });
-                }}
-                className="w-full text-xs text-gray-600 hover:text-gray-900 underline"
-              >
-                Use auto-detected location instead
-              </button>
-            )}
+            
+            <button
+              type="button"
+              onClick={() => detectLocation(true)}
+              className="w-full text-xs text-gray-600 hover:text-gray-900 underline"
+            >
+              Try auto-detect instead
+            </button>
           </div>
         )}
       </div>
