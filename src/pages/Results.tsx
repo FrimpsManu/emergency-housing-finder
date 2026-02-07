@@ -170,7 +170,6 @@ export default function Results() {
         </p>
       </div>
 
-      {/* Help Now: show fast actions at the top */}
       {filters.helpNow && (
         <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
           <p className="text-sm font-semibold text-gray-900">I need help right now</p>

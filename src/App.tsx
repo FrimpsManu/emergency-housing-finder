@@ -12,6 +12,7 @@ import Directions from "./pages/Directions";
 export default function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <AppLayout>
         <Routes>
           <Route path="/" element={<Home />} />
