@@ -1,7 +1,7 @@
-// In HousingResources.ts
 import axios from 'axios';
 
 const apiKey = import.meta.env.VITE_RAPID_API_KEY;
+
 type Location = {
     lat: string;
     lng: string;
@@ -9,49 +9,32 @@ type Location = {
 }
 
 export type Shelter = {
-    id: string;
     name: string;
     address: string;
     city: string;
     state: string;
-    zip: string;
-    phone: string;
-    latitude: number;
-    longitude: number;
-    distance: number;
+    zip_code: string;
+    location: string; // "lat,lng" format
+    phone_number: string;
+    email_address: string;
+    fax_number: string;
+    official_website: string;
+    twitter: string;
+    facebook: string;
+    instagram: string;
+    description: string;
+    photo_urls: string[];
+    update_datetime: string;
 }
 
 export type HousingResourcesResponse = Shelter[];
 
-function getUserLocation(): Promise<GeolocationPosition> {
-  return new Promise((resolve, reject) => {
-    if (!("geolocation" in navigator)) {
-      reject(new Error("Geolocation not supported"))
-      return
-    }
-
-    navigator.geolocation.getCurrentPosition(resolve, reject, {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 0,
-    })
-  })
-}
-
-
-export default async function HousingResources(): Promise<HousingResourcesResponse> {
-    const position = await getUserLocation();
-    const location: Location = {
-        lat: position.coords.latitude.toString(),
-        lng: position.coords.longitude.toString(),
-        radius: '10'
-    };
-
+export default async function HousingResources(location: Location): Promise<HousingResourcesResponse> {
     const query = {
-        method:"GET",
-        url:"https://homeless-shelter.p.rapidapi.com/location",
+        method: "GET",
+        url: "https://homeless-shelter.p.rapidapi.com/location",
         params: location,
-        headers:{
+        headers: {
             'x-rapidapi-key': apiKey,
             'x-rapidapi-host': 'homeless-shelter.p.rapidapi.com'
         }
