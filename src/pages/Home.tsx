@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 // Add type declarations for Google Maps
@@ -53,6 +53,8 @@ export default function Home() {
 
   // Manual location input
   const [manualLocation, setManualLocation] = useState("");
+  const autocompleteInputRef = useRef<HTMLInputElement>(null);
+  const autocompleteRef = useRef<any>(null);
 
   // Filters
   const [urgent, setUrgent] = useState(false);
@@ -97,17 +99,26 @@ export default function Home() {
 
   // Effect 1: Get user location on first mount and load Google Maps
   useEffect(() => {
-    // Load Google Maps API - check both window.google AND existing script tag
+    // Load Google Maps API with proper async loading
     const loadGoogleMapsScript = () => {
-      // Check if already loaded or loading
-      if (window.google) return;
-      const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
-      if (existingScript) return;
+      // Already fully loaded
+      if (window.google?.maps) return;
+      
+      // Check if script is already being loaded
+      const existingScript = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
+      if (existingScript) {
+        // Script exists but may still be loading, wait for it
+        return;
+      }
       
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_MAPS_API}&libraries=places`;
+      // ✅ Use new Places API with loading=async parameter
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_MAPS_API}&libraries=places&loading=async`;
       script.async = true;
       script.defer = true;
+      script.onerror = (error) => {
+        console.error('Failed to load Google Maps script:', error);
+      };
       document.head.appendChild(script);
     };
     
@@ -143,6 +154,95 @@ export default function Home() {
   //       });
   //   }
   // }, [detectedLocation]); // Runs when detectedLocation changes
+
+  // Effect 3: Initialize Google Places Autocomplete (using new recommended API)
+  useEffect(() => {
+    const initializeAutocomplete = async () => {
+      if (!autocompleteInputRef.current) return;
+      
+      // Wait for Google Maps to load
+      if (!window.google?.maps) {
+        setTimeout(initializeAutocomplete, 500);
+        return;
+      }
+      
+      if (autocompleteRef.current) return; // Already initialized
+
+      try {
+        // ✅ Import the new Places library (recommended as of March 2025)
+        const { Place, Autocomplete } = await window.google.maps.importLibrary("places");
+        
+        const autocomplete = new Autocomplete(autocompleteInputRef.current, {
+          fields: ['geometry', 'formatted_address', 'name'],
+          types: ['geocode']
+        });
+
+        autocomplete.addListener('place_changed', () => {
+          const place = autocomplete.getPlace();
+          if (place.geometry && place.geometry.location) {
+            const location: Location = {
+              lat: place.geometry.location.lat().toString(),
+              lng: place.geometry.location.lng().toString(),
+              radius: "10"
+            };
+            
+            setDetectedLocation(location);
+            setManualLocation(place.formatted_address || place.name || '');
+            localStorage.setItem("detectedLocation", JSON.stringify(location));
+          }
+        });
+
+        autocompleteRef.current = autocomplete;
+        console.log('✅ Google Places Autocomplete initialized (new importLibrary API)');
+      } catch (error) {
+        console.error('❌ Error with new API, trying legacy:', error);
+        
+        // Fallback to legacy API if importLibrary not available
+        try {
+          if (!window.google?.maps?.places) {
+            throw new Error('Places library not loaded');
+          }
+          
+          const autocomplete = new window.google.maps.places.Autocomplete(
+            autocompleteInputRef.current,
+            {
+              types: ['geocode'],
+              fields: ['geometry', 'formatted_address', 'name']
+            }
+          );
+
+          autocomplete.addListener('place_changed', () => {
+            const place = autocomplete.getPlace();
+            if (place.geometry && place.geometry.location) {
+              const location: Location = {
+                lat: place.geometry.location.lat().toString(),
+                lng: place.geometry.location.lng().toString(),
+                radius: "10"
+              };
+              
+              setDetectedLocation(location);
+              setManualLocation(place.formatted_address || place.name || '');
+              localStorage.setItem("detectedLocation", JSON.stringify(location));
+            }
+          });
+
+          autocompleteRef.current = autocomplete;
+          console.log('✅ Google Places Autocomplete initialized (legacy API)');
+        } catch (fallbackError) {
+          console.error('❌ Both new and legacy API failed:', fallbackError);
+        }
+      }
+    };
+
+    const timer = setTimeout(initializeAutocomplete, 100);
+    
+    return () => {
+      clearTimeout(timer);
+      if (autocompleteRef.current) {
+        window.google?.maps?.event?.clearInstanceListeners(autocompleteRef.current);
+      }
+    };
+  }, []);
   
   function handleSearch() {
     const locationParam = manualLocation.trim()
@@ -238,37 +338,14 @@ export default function Home() {
 
         <div className="space-y-2">
           <input
+            ref={autocompleteInputRef}
             type="text"
             placeholder="Or enter city, address, or ZIP"
             value={manualLocation}
             onChange={(e) => setManualLocation(e.target.value)}
-            onFocus={(e) => {
-              // Initialize Google Places Autocomplete
-              if (window.google && !e.target.dataset.initialized) {
-                const autocomplete = new window.google.maps.places.Autocomplete(e.target, {
-                  types: ['geocode'],
-                  fields: ['geometry', 'formatted_address', 'name']
-                });
-                
-                autocomplete.addListener('place_changed', () => {
-                  const place = autocomplete.getPlace();
-                  if (place.geometry && place.geometry.location) {
-                    const location: Location = {
-                      lat: place.geometry.location.lat().toString(),
-                      lng: place.geometry.location.lng().toString(),
-                      radius: "10"
-                    };
-                    
-                    setDetectedLocation(location);
-                    setManualLocation(place.formatted_address || place.name || '');
-                    localStorage.setItem("detectedLocation", JSON.stringify(location));
-                  }
-                });
-                
-                e.target.dataset.initialized = 'true';
-              }
-            }}
             className="w-full rounded-xl border border-gray-300 px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-gray-900"
+            autoComplete="off"
+            inputMode="text"
           />
           <p className="text-xs text-gray-500">
             {detectedLocation && !manualLocation

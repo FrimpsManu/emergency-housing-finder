@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 type Location = {
@@ -35,26 +35,120 @@ export default function SignUp() {
     longitude: "",
   });
   const [useManualLocation, setUseManualLocation] = useState(false);
+  const [manualLocationText, setManualLocationText] = useState("");
+  
+  // Refs for Google Places Autocomplete
+  const autocompleteInputRef = useRef<HTMLInputElement>(null);
+  const autocompleteRef = useRef<any>(null);
 
   // Auto-detect location on component mount
   useEffect(() => {
     detectLocation();
     
-    // Load Google Places API - check both window.google AND existing script tag
+    // Load Google Places API with proper async loading
     const loadGoogleMapsScript = () => {
-      // Check if already loaded or loading
-      if (window.google) return;
-      const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
-      if (existingScript) return;
+      // Check if already fully loaded
+      if (window.google?.maps) return;
+      
+      // Check if script is already in DOM (being loaded)
+      const existingScript = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
+      if (existingScript) return; // Let existing script finish loading
       
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_MAPS_API}&libraries=places`;
+      // ✅ Use loading=async parameter (recommended)
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_MAPS_API}&libraries=places&loading=async`;
       script.async = true;
       script.defer = true;
       document.head.appendChild(script);
     };
     
     loadGoogleMapsScript();
+  }, []);
+
+  // Initialize Google Places Autocomplete (using new recommended API)
+  useEffect(() => {
+    const initializeAutocomplete = async () => {
+      if (!autocompleteInputRef.current) return;
+      
+      if (!window.google?.maps) {
+        setTimeout(initializeAutocomplete, 500);
+        return;
+      }
+      
+      if (autocompleteRef.current) return;
+
+      try {
+        // ✅ Use new importLibrary API (recommended as of March 2025)
+        const { Autocomplete } = await window.google.maps.importLibrary("places");
+        
+        const autocomplete = new Autocomplete(autocompleteInputRef.current, {
+          fields: ['geometry', 'formatted_address', 'name'],
+          types: ['geocode']
+        });
+
+        autocomplete.addListener('place_changed', () => {
+          const place = autocomplete.getPlace();
+          if (place.geometry && place.geometry.location) {
+            const location: Location = {
+              lat: place.geometry.location.lat().toString(),
+              lng: place.geometry.location.lng().toString(),
+            };
+            
+            setDetectedLocation(location);
+            setManualLocationText(place.formatted_address || place.name || '');
+            setUseManualLocation(true);
+          }
+        });
+
+        autocompleteRef.current = autocomplete;
+        console.log('✅ Google Places Autocomplete initialized in SignUp (new API)');
+      } catch (error) {
+        console.error('❌ Error with new API, trying legacy:', error);
+        
+        // Fallback to legacy API
+        try {
+          if (!window.google?.maps?.places) {
+            throw new Error('Places library not loaded');
+          }
+          
+          const autocomplete = new window.google.maps.places.Autocomplete(
+            autocompleteInputRef.current,
+            {
+              types: ['geocode'],
+              fields: ['geometry', 'formatted_address', 'name']
+            }
+          );
+
+          autocomplete.addListener('place_changed', () => {
+            const place = autocomplete.getPlace();
+            if (place.geometry && place.geometry.location) {
+              const location: Location = {
+                lat: place.geometry.location.lat().toString(),
+                lng: place.geometry.location.lng().toString(),
+              };
+              
+              setDetectedLocation(location);
+              setManualLocationText(place.formatted_address || place.name || '');
+              setUseManualLocation(true);
+            }
+          });
+
+          autocompleteRef.current = autocomplete;
+          console.log('✅ Google Places Autocomplete initialized in SignUp (legacy API)');
+        } catch (fallbackError) {
+          console.error('❌ Both APIs failed:', fallbackError);
+        }
+      }
+    };
+
+    const timer = setTimeout(initializeAutocomplete, 100);
+    
+    return () => {
+      clearTimeout(timer);
+      if (autocompleteRef.current) {
+        window.google?.maps?.event?.clearInstanceListeners(autocompleteRef.current);
+      }
+    };
   }, []);
 
   function getUserLocation(): Promise<GeolocationPosition> {
@@ -619,38 +713,22 @@ export default function SignUp() {
                 Search for your location <span className="text-red-500">*</span>
               </label>
               <input
+                ref={autocompleteInputRef}
                 type="text"
                 id="location-search"
                 placeholder="Enter city, address, or ZIP code"
-                onFocus={(e) => {
-                  // Initialize Google Places Autocomplete
-                  if (window.google && !e.target.dataset.initialized) {
-                    const autocomplete = new window.google.maps.places.Autocomplete(e.target, {
-                      types: ['geocode'],
-                      fields: ['geometry', 'formatted_address']
-                    });
-                    
-                    autocomplete.addListener('place_changed', () => {
-                      const place = autocomplete.getPlace();
-                      if (place.geometry && place.geometry.location) {
-                        setManualLocation({
-                          latitude: place.geometry.location.lat().toString(),
-                          longitude: place.geometry.location.lng().toString()
-                        });
-                      }
-                    });
-                    
-                    e.target.dataset.initialized = 'true';
-                  }
-                }}
+                value={manualLocationText}
+                onChange={(e) => setManualLocationText(e.target.value)}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+                autoComplete="off"
+                inputMode="text"
               />
             </div>
             
-            {manualLocation.latitude && manualLocation.longitude && (
+            {detectedLocation && useManualLocation && (
               <div className="rounded-lg bg-green-50 border border-green-200 px-3 py-2">
                 <p className="text-xs text-green-800">
-                  ✓ Location set: {parseFloat(manualLocation.latitude).toFixed(4)}, {parseFloat(manualLocation.longitude).toFixed(4)}
+                  ✓ Location set: {parseFloat(detectedLocation.lat).toFixed(4)}, {parseFloat(detectedLocation.lng).toFixed(4)}
                 </p>
               </div>
             )}

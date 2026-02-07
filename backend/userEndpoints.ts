@@ -23,10 +23,9 @@ pool.on('error', (err) => {
   console.error('❌ Unexpected database error:', err);
 });
 
-// Create or update user contact
-// Update createUser function to accept location
+// Create or update user contact with location tracking
 async function createUser(req, res) {
-  let { email, phone, webhook_url, alert_enabled, latitude, longitude } = req.body;
+  let { email, phone, webhook_url, alert_enabled, latitude, longitude, location_name } = req.body;
 
   if (!phone) {
     return res.status(400).json({ error: "Phone number is required" });
@@ -47,6 +46,24 @@ async function createUser(req, res) {
     return res.status(400).json({ error: "Invalid email format" });
   }
 
+  // Location validation (optional but recommended for disaster alerts)
+  if (latitude && longitude) {
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+    
+    if (isNaN(lat) || lat < -90 || lat > 90) {
+      return res.status(400).json({ 
+        error: "Invalid latitude. Must be between -90 and 90" 
+      });
+    }
+    
+    if (isNaN(lng) || lng < -180 || lng > 180) {
+      return res.status(400).json({ 
+        error: "Invalid longitude. Must be between -180 and 180" 
+      });
+    }
+  }
+
   try {
     // ✨ CHECK IF PHONE NUMBER ALREADY EXISTS
     const existingUser = await pool.query(
@@ -57,11 +74,12 @@ async function createUser(req, res) {
     if (existingUser.rows.length > 0) {
       const user = existingUser.rows[0];
       
-      // Phone number already registered
+      // Phone number already registered - return userId for frontend to use
       return res.status(409).json({ 
         error: "Phone number already registered",
         message: "This phone number is already receiving disaster alerts.",
         data: {
+          userId: user.id, // ✅ Frontend needs this to proceed with verification
           phone: user.phone,
           email: user.email,
           alert_enabled: user.alert_enabled,
@@ -70,7 +88,7 @@ async function createUser(req, res) {
       });
     }
 
-    // ✨ CHECK IF EMAIL ALREADY EXISTS (optional, if you want email to be unique too)
+    // ✨ CHECK IF EMAIL ALREADY EXISTS
     if (email) {
       const existingEmail = await pool.query(
         'SELECT id, phone, email FROM user_contacts WHERE email = $1',
@@ -82,6 +100,7 @@ async function createUser(req, res) {
           error: "Email already registered",
           message: "This email is already associated with another account.",
           data: {
+            userId: existingEmail.rows[0].id, // ✅ Return userId
             email: existingEmail.rows[0].email,
             registered: true
           }
@@ -89,11 +108,17 @@ async function createUser(req, res) {
       }
     }
 
+    console.log('📍 Creating user with location:', { 
+      latitude: latitude || 'not provided', 
+      longitude: longitude || 'not provided',
+      location_name: location_name || 'not provided'
+    });
+
     // Proceed with registration if no duplicates found
     const query = `
       INSERT INTO user_contacts 
-      (phone, email, webhook_url, alert_enabled, latitude, longitude, phone_verified, email_verified)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      (phone, email, webhook_url, alert_enabled, latitude, longitude, location_name, phone_verified, email_verified, created_at, location_updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       RETURNING *;
     `;
     
@@ -102,24 +127,31 @@ async function createUser(req, res) {
       email || null,
       webhook_url || null,
       alert_enabled !== undefined ? alert_enabled : true,
-      latitude || null,
-      longitude || null,
+      latitude ? parseFloat(latitude) : null,
+      longitude ? parseFloat(longitude) : null,
+      location_name || null,
       false, // Don't auto-verify phone - require verification
       false  // Don't auto-verify email - require verification
     ];
 
     const result = await pool.query(query, values);
 
+    console.log('✅ User created successfully:', {
+      id: result.rows[0].id,
+      phone: result.rows[0].phone,
+      hasLocation: !!(result.rows[0].latitude && result.rows[0].longitude)
+    });
+
     res.status(201).json({
       success: true,
-      message: "User registered successfully",
+      message: "User registered successfully. Please verify your contact information to receive alerts.",
       data: result.rows[0]
     });
   } catch (error) {
-    console.error("Error creating user:", error);
+    console.error("❌ Error creating user:", error);
     
-    // Handle unique constraint violation (if you add it later)
-    if (error.code === '23505') { // PostgreSQL unique violation error code
+    // Handle unique constraint violation
+    if (error.code === '23505') {
       return res.status(409).json({ 
         error: "Phone number or email already exists",
         message: "This contact information is already registered."
@@ -132,6 +164,7 @@ async function createUser(req, res) {
     });
   }
 }
+
 // Get user by user_id
 async function getUser(req, res) {
   const { id } = req.params;
@@ -193,13 +226,13 @@ async function getAllUsers(req, res) {
   }
 }
 
-// Update user contact information
+// Update user contact information and location
 async function updateUser(req, res) {
-  const { user_id } = req.params;
-  const { email, phone, webhook_url, alert_enabled } = req.body;
+  const { id } = req.params;
+  const { email, phone, webhook_url, alert_enabled, latitude, longitude, location_name } = req.body;
 
-  if (!user_id) {
-    return res.status(400).json({ error: "user_id is required" });
+  if (!id) {
+    return res.status(400).json({ error: "id is required" });
   }
 
   // Validation
@@ -235,17 +268,34 @@ async function updateUser(req, res) {
       updates.push(`alert_enabled = $${paramCount++}`);
       values.push(alert_enabled);
     }
+    if (latitude !== undefined) {
+      updates.push(`latitude = $${paramCount++}`);
+      values.push(latitude ? parseFloat(latitude) : null);
+    }
+    if (longitude !== undefined) {
+      updates.push(`longitude = $${paramCount++}`);
+      values.push(longitude ? parseFloat(longitude) : null);
+    }
+    if (location_name !== undefined) {
+      updates.push(`location_name = $${paramCount++}`);
+      values.push(location_name);
+    }
+
+    // Update location timestamp if location changed
+    if (latitude !== undefined || longitude !== undefined) {
+      updates.push(`location_updated_at = CURRENT_TIMESTAMP`);
+    }
 
     if (updates.length === 0) {
       return res.status(400).json({ error: "No fields to update" });
     }
 
-    values.push(user_id);
+    values.push(id);
 
     const query = `
       UPDATE user_contacts 
       SET ${updates.join(', ')}
-      WHERE user_id = $${paramCount}
+      WHERE id = $${paramCount}
       RETURNING *;
     `;
 
@@ -268,15 +318,15 @@ async function updateUser(req, res) {
 
 // Delete user
 async function deleteUser(req, res) {
-  const { user_id } = req.params;
+  const { id } = req.params;
 
-  if (!user_id) {
-    return res.status(400).json({ error: "user_id is required" });
+  if (!id) {
+    return res.status(400).json({ error: "id is required" });
   }
 
   try {
-    const query = "DELETE FROM user_contacts WHERE user_id = $1 RETURNING *";
-    const result = await pool.query(query, [user_id]);
+    const query = "DELETE FROM user_contacts WHERE id = $1 RETURNING *";
+    const result = await pool.query(query, [id]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "User not found" });
@@ -295,11 +345,11 @@ async function deleteUser(req, res) {
 
 // Toggle alert status
 async function toggleAlerts(req, res) {
-  const { user_id } = req.params;
+  const { id } = req.params;
   const { alert_enabled } = req.body;
 
-  if (!user_id) {
-    return res.status(400).json({ error: "user_id is required" });
+  if (!id) {
+    return res.status(400).json({ error: "id is required" });
   }
 
   if (typeof alert_enabled !== 'boolean') {
@@ -310,11 +360,11 @@ async function toggleAlerts(req, res) {
     const query = `
       UPDATE user_contacts 
       SET alert_enabled = $1
-      WHERE user_id = $2
+      WHERE id = $2
       RETURNING *;
     `;
 
-    const result = await pool.query(query, [alert_enabled, user_id]);
+    const result = await pool.query(query, [alert_enabled, id]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "User not found" });
@@ -360,7 +410,10 @@ export async function getUserDetailsFromDB(userId: string) {
         webhook_url, 
         alert_enabled,
         phone_verified,
-        email_verified
+        email_verified,
+        latitude,
+        longitude,
+        location_name
       FROM user_contacts 
       WHERE id = $1 AND alert_enabled = true
     `;
@@ -377,15 +430,35 @@ export async function getUserDetailsFromDB(userId: string) {
   }
 }
 
-// Helper function to get all users with alerts enabled
+// Helper function to get all users with alerts enabled AND location data
 export async function getAllAlertEnabledUsers() {
   try {
     const query = `
-      SELECT user_id, email, phone, webhook_url
+      SELECT 
+        id, 
+        email, 
+        phone, 
+        webhook_url,
+        latitude,
+        longitude,
+        location_name,
+        phone_verified,
+        email_verified
       FROM user_contacts 
-      WHERE alert_enabled = true
+      WHERE alert_enabled = true 
+        AND latitude IS NOT NULL 
+        AND longitude IS NOT NULL
+        AND (
+          (phone IS NOT NULL AND phone_verified = true) 
+          OR 
+          (email IS NOT NULL AND email_verified = true)
+        )
+      ORDER BY created_at DESC
     `;
     const result = await pool.query(query);
+    
+    console.log(`📊 Found ${result.rows.length} alert-enabled users with verified contacts and locations`);
+    
     return result.rows;
   } catch (error) {
     console.error("Error fetching alert-enabled users:", error);
@@ -522,8 +595,8 @@ async function verifyEmail(req, res) {
 }
 
 // Routes
-userRouter.post("/users", createUser);  // Changed function name
-userRouter.get("/users/:id", getUser);  // Changed param name
+userRouter.post("/users", createUser);
+userRouter.get("/users/:id", getUser);
 userRouter.put("/users/:id", updateUser);
 userRouter.delete("/users/:id", deleteUser);
 userRouter.patch("/users/:id/alerts", toggleAlerts);
