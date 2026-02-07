@@ -75,7 +75,9 @@ function RegisterModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => vo
             Register for Disaster Alerts
           </h2>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Close registration modal"
             className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

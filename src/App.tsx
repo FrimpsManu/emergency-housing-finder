@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AppLayout from "./components/AppLayout";
+import ScrollToTop from "./components/ScrollToTop";
 
 import Home from "./pages/Home";
 import Results from "./pages/Results";
@@ -23,7 +24,6 @@ export default function App() {
           <Route path="/signup" element={<SignUp />} />
           <Route path="/directions/:shelterName" element={<Directions />} />
           <Route path="*" element={<Navigate to="/" replace />} />
-
         </Routes>
       </AppLayout>
     </BrowserRouter>
