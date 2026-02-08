@@ -81,7 +81,9 @@ function RegisterModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => vo
             Register for Disaster Alerts
           </h2>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Close registration modal"
             className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
             aria-label="Close registration dialog"
           >

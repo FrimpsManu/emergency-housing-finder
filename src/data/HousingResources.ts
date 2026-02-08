@@ -1,6 +1,8 @@
 import axios from 'axios';
 
 const apiKey = import.meta.env.VITE_RAPID_API_KEY;
+console.log("RapidAPI key exists?", Boolean(import.meta.env.VITE_RAPID_API_KEY));
+
 
 type Location = {
     lat: string;
