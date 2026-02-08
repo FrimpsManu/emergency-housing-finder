@@ -163,7 +163,7 @@ export default function Results() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
+      <div role="heading" aria-level={1}>
         <h1 className="text-2xl font-semibold text-gray-900">Options near you</h1>
         <p className="mt-1 text-sm text-gray-600">
           {filters.location || "No location set"}
@@ -171,8 +171,14 @@ export default function Results() {
       </div>
 
       {filters.helpNow && (
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
-          <p className="text-sm font-semibold text-gray-900">I need help right now</p>
+        <div 
+          className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3"
+          role="region"
+          aria-labelledby="help-now-heading"
+        >
+          <p id="help-now-heading" className="text-sm font-semibold text-gray-900">
+            I need help right now
+          </p>
           <p className="text-sm text-gray-600">
             If you can't find a match quickly, calling is often the fastest path.
           </p>
@@ -181,18 +187,20 @@ export default function Results() {
             <a
               href="tel:211"
               className="block h-12 rounded-xl bg-gray-900 text-white font-semibold flex items-center justify-center"
+              aria-label="Call 211 for housing help"
             >
               Call 211 for housing help
             </a>
             <a
               href="tel:988"
               className="block h-12 rounded-xl border border-gray-200 bg-white text-gray-900 font-semibold flex items-center justify-center hover:bg-gray-50"
+              aria-label="Call 988 for crisis support"
             >
               Call 988 (crisis support)
             </a>
           </div>
 
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-gray-500" role="note">
             If you're in immediate danger, call your local emergency number.
           </p>
         </div>
@@ -200,14 +208,15 @@ export default function Results() {
 
       {/* Active filters */}
       {activeChips.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Active filters">
           {activeChips.map((c) => (
             <button
               key={c.key}
               onClick={() => removeChip(c.key)}
               className="rounded-full bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-200"
+              aria-label={`Remove ${c.label} filter`}
             >
-              {c.label} ✕
+              {c.label} <span aria-hidden="true">✕</span>
             </button>
           ))}
           <button
@@ -221,9 +230,16 @@ export default function Results() {
 
       {/* Loading state */}
       {loading && hasLocation && (
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div 
+          className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
+          role="status"
+          aria-live="polite"
+        >
           <div className="flex items-center gap-3">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-900"></div>
+            <div 
+              className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-900"
+              aria-hidden="true"
+            ></div>
             <span className="text-sm text-gray-600">Finding housing options...</span>
           </div>
         </div>
@@ -231,7 +247,11 @@ export default function Results() {
 
       {/* Error state */}
       {error && hasLocation && (
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
+        <div 
+          className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3"
+          role="alert"
+          aria-live="assertive"
+        >
           <p className="text-sm text-gray-800">{error}</p>
           <button
             onClick={() => window.location.reload()}
@@ -246,7 +266,7 @@ export default function Results() {
       {!loading && !error && hasLocation && shelters.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-600" aria-live="polite">
               {shelters.length} option{shelters.length > 1 ? 's' : ''} · {reasonText}
             </p>
             <button
@@ -257,110 +277,120 @@ export default function Results() {
             </button>
           </div>
 
-          {shelters.map((shelter, index) => {
-            const [shelterLat, shelterLng] = shelter.location.split(',').map(parseFloat);
-            const distance = userLat && userLng ? calculateDistance(userLat, userLng, shelterLat, shelterLng) : null;
+          <ul className="space-y-4" role="list" aria-label="Housing options">
+            {shelters.map((shelter, index) => {
+              const [shelterLat, shelterLng] = shelter.location.split(',').map(parseFloat);
+              const distance = userLat && userLng ? calculateDistance(userLat, userLng, shelterLat, shelterLng) : null;
 
-            const handleDirectionsClick = () => {
-              if (!shelterLat || !shelterLng || isNaN(shelterLat) || isNaN(shelterLng)) {
-                alert("Unable to get directions: Invalid shelter location");
-                return;
-              }
+              const handleDirectionsClick = () => {
+                if (!shelterLat || !shelterLng || isNaN(shelterLat) || isNaN(shelterLng)) {
+                  alert("Unable to get directions: Invalid shelter location");
+                  return;
+                }
 
-              const shelterData = {
-                name: shelter.name,
-                lat: shelterLat.toString(),
-                lng: shelterLng.toString(),
+                const shelterData = {
+                  name: shelter.name,
+                  lat: shelterLat.toString(),
+                  lng: shelterLng.toString(),
+                };
+                
+                localStorage.setItem(`shelter-${encodeURIComponent(shelter.name)}`, JSON.stringify(shelterData));
+                nav(`/directions/${encodeURIComponent(shelter.name)}`);
               };
-              
-              localStorage.setItem(`shelter-${encodeURIComponent(shelter.name)}`, JSON.stringify(shelterData));
-              nav(`/directions/${encodeURIComponent(shelter.name)}`);
-            };
 
-            return (
-              <div
-                key={`${shelter.name}-${index}`}
-                className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3"
-              >
-                {/* Header */}
-                <div className="space-y-2">
-                  <div className="flex items-start justify-between gap-3">
-                    <h3 className="text-base font-semibold text-gray-900">{shelter.name}</h3>
-                    {distance && (
-                      <span className="text-sm font-medium text-gray-600 whitespace-nowrap">
-                        {distance.toFixed(1)} mi
-                      </span>
+              return (
+                <li
+                  key={`${shelter.name}-${index}`}
+                  className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3"
+                >
+                  {/* Header */}
+                  <div className="space-y-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <h2 className="text-base font-semibold text-gray-900">{shelter.name}</h2>
+                      {distance && (
+                        <span className="text-sm font-medium text-gray-600 whitespace-nowrap" aria-label={`${distance.toFixed(1)} miles away`}>
+                          {distance.toFixed(1)} mi
+                        </span>
+                      )}
+                    </div>
+                    
+                    {shelter.address && (
+                      <address className="text-sm text-gray-600 not-italic">
+                        {shelter.address}
+                        {shelter.city && `, ${shelter.city}`}
+                        {shelter.state && `, ${shelter.state}`}
+                        {shelter.zip_code && ` ${shelter.zip_code}`}
+                      </address>
                     )}
                   </div>
-                  
-                  {shelter.address && (
-                    <p className="text-sm text-gray-600">
-                      {shelter.address}
-                      {shelter.city && `, ${shelter.city}`}
-                      {shelter.state && `, ${shelter.state}`}
-                      {shelter.zip_code && ` ${shelter.zip_code}`}
+
+                  {/* Description */}
+                  {shelter.description && (
+                    <p className="text-sm text-gray-700 leading-relaxed">
+                      {shelter.description}
                     </p>
                   )}
-                </div>
 
-                {/* Description */}
-                {shelter.description && (
-                  <p className="text-sm text-gray-700 leading-relaxed">
-                    {shelter.description}
-                  </p>
-                )}
-
-                {/* Primary Action - Phone */}
-                {shelter.phone_number && (
-                  <a
-                    href={`tel:${shelter.phone_number}`}
-                    className="block h-12 rounded-xl bg-gray-900 text-white font-semibold flex items-center justify-center"
-                  >
-                    Call {shelter.phone_number}
-                  </a>
-                )}
-
-                {/* Secondary Actions */}
-                <div className="grid grid-cols-2 gap-2">
-                  {shelter.location && (
-                    <button
-                      onClick={handleDirectionsClick}
-                      className="h-10 rounded-xl border border-gray-200 bg-white text-gray-900 font-medium text-sm hover:bg-gray-50"
-                    >
-                      Directions
-                    </button>
-                  )}
-                  
-                  {shelter.official_website && (
+                  {/* Primary Action - Phone */}
+                  {shelter.phone_number && (
                     <a
-                      href={shelter.official_website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="h-10 rounded-xl border border-gray-200 bg-white text-gray-900 font-medium text-sm hover:bg-gray-50 flex items-center justify-center"
+                      href={`tel:${shelter.phone_number}`}
+                      className="block h-12 rounded-xl bg-gray-900 text-white font-semibold flex items-center justify-center"
+                      aria-label={`Call ${shelter.name} at ${shelter.phone_number}`}
                     >
-                      Website
+                      Call {shelter.phone_number}
                     </a>
                   )}
-                </div>
 
-                {/* Email */}
-                {shelter.email_address && (
-                  <a
-                    href={`mailto:${shelter.email_address}`}
-                    className="block text-sm text-gray-600 hover:text-gray-900"
-                  >
-                    {shelter.email_address}
-                  </a>
-                )}
-              </div>
-            );
-          })}
+                  {/* Secondary Actions */}
+                  <div className="grid grid-cols-2 gap-2" role="group" aria-label="Additional actions">
+                    {shelter.location && (
+                      <button
+                        onClick={handleDirectionsClick}
+                        className="h-10 rounded-xl border border-gray-200 bg-white text-gray-900 font-medium text-sm hover:bg-gray-50"
+                        aria-label={`Get directions to ${shelter.name}`}
+                      >
+                        Directions
+                      </button>
+                    )}
+                    
+                    {shelter.official_website && (
+                      <a
+                        href={shelter.official_website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="h-10 rounded-xl border border-gray-200 bg-white text-gray-900 font-medium text-sm hover:bg-gray-50 flex items-center justify-center"
+                        aria-label={`Visit ${shelter.name} website, opens in new tab`}
+                      >
+                        Website
+                      </a>
+                    )}
+                  </div>
+
+                  {/* Email */}
+                  {shelter.email_address && (
+                    <a
+                      href={`mailto:${shelter.email_address}`}
+                      className="block text-sm text-gray-600 hover:text-gray-900"
+                      aria-label={`Email ${shelter.name} at ${shelter.email_address}`}
+                    >
+                      {shelter.email_address}
+                    </a>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
 
       {/* No results state */}
       {!loading && !error && hasLocation && shelters.length === 0 && (
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
+        <div 
+          className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3"
+          role="status"
+          aria-live="polite"
+        >
           <p className="text-sm font-semibold text-gray-900">No housing options found nearby</p>
           <p className="text-sm text-gray-600">
             Try calling 211 or adjusting your filters.
@@ -385,8 +415,13 @@ export default function Results() {
       )}
 
       {/* Emergency fallback (always visible) */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
-        <p className="text-sm font-medium text-gray-900">Need help right now?</p>
+      <aside 
+        className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3"
+        aria-labelledby="emergency-help-heading"
+      >
+        <p id="emergency-help-heading" className="text-sm font-medium text-gray-900">
+          Need help right now?
+        </p>
         <p className="text-sm text-gray-600">
           If nothing matches or you're unsure, calling a local support line is often the fastest path.
         </p>
@@ -395,21 +430,23 @@ export default function Results() {
           <a
             href="tel:211"
             className="block h-12 rounded-xl bg-gray-900 text-white font-semibold flex items-center justify-center"
+            aria-label="Call 211 for housing help"
           >
             Call 211 for housing help
           </a>
           <a
             href="tel:988"
             className="block h-12 rounded-xl border border-gray-200 bg-white text-gray-900 font-semibold flex items-center justify-center hover:bg-gray-50"
+            aria-label="Call 988 for crisis support"
           >
             Call 988 (crisis support)
           </a>
         </div>
 
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-gray-500" role="note">
           If you're in immediate danger, call your local emergency number.
         </p>
-      </div>
+      </aside>
     </div>
   );
 }

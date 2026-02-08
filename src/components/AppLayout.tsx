@@ -15,6 +15,7 @@ function NavItem({ to, label }: { to: string; label: string }) {
             : "text-gray-700 hover:bg-gray-100",
         ].join(" ")
       }
+      aria-current={({ isActive }) => (isActive ? "page" : undefined)}
     >
       {label}
     </NavLink>
@@ -68,17 +69,23 @@ function RegisterModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => vo
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+    >
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900">
+          <h2 id="modal-title" className="text-xl font-semibold text-gray-900">
             Register for Disaster Alerts
           </h2>
           <button
             onClick={onClose}
             className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            aria-label="Close registration dialog"
           >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -89,8 +96,12 @@ function RegisterModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => vo
         </p>
 
         {status === "success" ? (
-          <div className="rounded-lg bg-green-50 p-4 text-center">
-            <div className="mb-2 text-2xl">✓</div>
+          <div 
+            className="rounded-lg bg-green-50 p-4 text-center"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="mb-2 text-2xl" aria-hidden="true">✓</div>
             <p className="font-medium text-green-900">Successfully registered!</p>
             <p className="mt-1 text-sm text-green-700">
               You'll receive alerts for disasters in your area.
@@ -100,12 +111,13 @@ function RegisterModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => vo
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="user_id" className="block text-sm font-medium text-gray-700">
-                User ID <span className="text-red-500">*</span>
+                User ID <span className="text-red-500" aria-label="required">*</span>
               </label>
               <input
                 type="text"
                 id="user_id"
                 required
+                aria-required="true"
                 value={formData.user_id}
                 onChange={(e) => setFormData({ ...formData, user_id: e.target.value })}
                 className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
@@ -141,12 +153,16 @@ function RegisterModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => vo
               />
             </div>
 
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-500" role="note">
               * At least one contact method (email or phone) is required
             </p>
 
             {status === "error" && (
-              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-800">
+              <div 
+                className="rounded-lg bg-red-50 p-3 text-sm text-red-800"
+                role="alert"
+                aria-live="assertive"
+              >
                 {errorMessage}
               </div>
             )}
@@ -162,6 +178,7 @@ function RegisterModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => vo
               <button
                 type="submit"
                 disabled={status === "loading"}
+                aria-busy={status === "loading"}
                 className="flex-1 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
               >
                 {status === "loading" ? "Registering..." : "Register"}
@@ -181,20 +198,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Header */}
-      <header className="sticky top-0 z-10 border-b bg-white/90 backdrop-blur">
+      <header className="sticky top-0 z-10 border-b bg-white/90 backdrop-blur" role="banner">
         <div className="mx-auto max-w-md px-4 py-3">
           <div className="flex items-start justify-between">
             <div>
-              <div className="text-base font-semibold text-gray-900">
+              <h1 className="text-base font-semibold text-gray-900">
                 Emergency Housing Finder
-              </div>
-              <div className="mt-1 text-xs text-gray-600">
+              </h1>
+              <p className="mt-1 text-xs text-gray-600">
                 Availability can change — always call ahead.
-              </div>
+              </p>
             </div>
             <button
               onClick={() => navigate("/signup")}
               className="ml-2 flex-shrink-0 rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-800 transition-colors"
+              aria-label="Sign up to get disaster alerts"
             >
               Get Alerts
             </button>
@@ -203,12 +221,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Content */}
-      <main className="mx-auto w-full max-w-md px-4 py-5 pb-28">
+      <main className="mx-auto w-full max-w-md px-4 py-5 pb-28" role="main">
         {children}
       </main>
 
       {/* Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-10 border-t border-gray-200 bg-white/90 backdrop-blur">
+      <nav 
+        className="fixed bottom-0 left-0 right-0 z-10 border-t border-gray-200 bg-white/90 backdrop-blur"
+        role="navigation"
+        aria-label="Main navigation"
+      >
         {/* Safe area support for iOS */}
         <div className="mx-auto w-full max-w-md px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
           <div className="flex gap-2 rounded-2xl border border-gray-200 bg-white p-2 shadow-sm">

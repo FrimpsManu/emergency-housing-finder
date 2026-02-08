@@ -411,18 +411,22 @@ export default function SignUp() {
   if (step === "complete") {
     return (
       <div className="space-y-6">
-        <div className="rounded-2xl bg-gray-50 p-6 text-center">
-          <div className="mb-3 text-4xl">✓</div>
-          <h2 className="text-xl font-semibold text-gray-900">
+        <div 
+          className="rounded-2xl bg-gray-50 p-6 text-center"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="mb-3 text-4xl" aria-hidden="true">✓</div>
+          <h1 className="text-xl font-semibold text-gray-900">
             You're all verified!
-          </h2>
+          </h1>
           <p className="mt-2 text-sm text-gray-700">
             You'll now receive SMS{formData.email ? ' and email' : ''} alerts when natural disasters are detected near your location.
           </p>
           <div className="mt-4 rounded-lg bg-white p-4">
             <p className="text-sm text-gray-800 font-medium">To unsubscribe anytime:</p>
             <p className="mt-2 text-base text-gray-900">
-              Reply <span className="font-bold">STOP</span> to any alert message
+              Reply <strong>STOP</strong> to any alert message
             </p>
           </div>
           <button
@@ -440,7 +444,7 @@ export default function SignUp() {
   if (step === "verify-phone") {
     return (
       <form onSubmit={handleVerifyPhone} className="space-y-6">
-        <div>
+        <div role="heading" aria-level={1}>
           <h1 className="text-2xl font-semibold text-gray-900">
             Verify your phone number
           </h1>
@@ -457,19 +461,26 @@ export default function SignUp() {
             type="text"
             id="phone-code"
             required
+            aria-required="true"
             maxLength={6}
             value={verificationCodes.phone}
             onChange={(e) => setVerificationCodes({ ...verificationCodes, phone: e.target.value.replace(/\D/g, '') })}
             className="w-full rounded-xl border border-gray-300 px-3 py-3 text-center text-2xl font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-gray-900"
             placeholder="000000"
+            aria-describedby="code-expiry"
+            inputMode="numeric"
           />
-          <p className="text-xs text-gray-500">
+          <p id="code-expiry" className="text-xs text-gray-500">
             Code expires in 10 minutes
           </p>
         </div>
 
         {errorMessage && (
-          <div className="rounded-xl bg-red-50 border border-red-200 p-4">
+          <div 
+            className="rounded-xl bg-red-50 border border-red-200 p-4"
+            role="alert"
+            aria-live="assertive"
+          >
             <p className="text-sm text-red-800">{errorMessage}</p>
           </div>
         )}
@@ -477,6 +488,8 @@ export default function SignUp() {
         <button
           type="submit"
           disabled={verificationCodes.phone.length !== 6 || status === "loading"}
+          aria-disabled={verificationCodes.phone.length !== 6 || status === "loading"}
+          aria-busy={status === "loading"}
           className="w-full h-12 rounded-xl bg-gray-900 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {status === "loading" ? "Verifying..." : "Verify Phone"}
@@ -497,7 +510,7 @@ export default function SignUp() {
   if (step === "verify-email") {
     return (
       <form onSubmit={handleVerifyEmail} className="space-y-6">
-        <div>
+        <div role="heading" aria-level={1}>
           <h1 className="text-2xl font-semibold text-gray-900">
             Verify your email
           </h1>
@@ -514,19 +527,26 @@ export default function SignUp() {
             type="text"
             id="email-code"
             required
+            aria-required="true"
             maxLength={6}
             value={verificationCodes.email}
             onChange={(e) => setVerificationCodes({ ...verificationCodes, email: e.target.value.replace(/\D/g, '') })}
             className="w-full rounded-xl border border-gray-300 px-3 py-3 text-center text-2xl font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-gray-900"
             placeholder="000000"
+            aria-describedby="email-code-expiry"
+            inputMode="numeric"
           />
-          <p className="text-xs text-gray-500">
+          <p id="email-code-expiry" className="text-xs text-gray-500">
             Code expires in 10 minutes
           </p>
         </div>
 
         {errorMessage && (
-          <div className="rounded-xl bg-red-50 border border-red-200 p-4">
+          <div 
+            className="rounded-xl bg-red-50 border border-red-200 p-4"
+            role="alert"
+            aria-live="assertive"
+          >
             <p className="text-sm text-red-800">{errorMessage}</p>
           </div>
         )}
@@ -534,6 +554,8 @@ export default function SignUp() {
         <button
           type="submit"
           disabled={verificationCodes.email.length !== 6 || status === "loading"}
+          aria-disabled={verificationCodes.email.length !== 6 || status === "loading"}
+          aria-busy={status === "loading"}
           className="w-full h-12 rounded-xl bg-gray-900 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {status === "loading" ? "Verifying..." : "Verify Email"}
@@ -562,7 +584,7 @@ export default function SignUp() {
   return (
     <form onSubmit={handleRegister} className="space-y-6">
       {/* Title */}
-      <div>
+      <div role="heading" aria-level={1}>
         <h1 className="text-2xl font-semibold text-gray-900">
           Get disaster alerts in your area
         </h1>
@@ -572,15 +594,19 @@ export default function SignUp() {
       </div>
 
       {/* Alert Info Box */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div 
+        className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
+        role="region"
+        aria-labelledby="alert-info-heading"
+      >
         <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 rounded-lg bg-gray-100 p-2">
+          <div className="flex-shrink-0 rounded-lg bg-gray-100 p-2" aria-hidden="true">
             <svg className="h-5 w-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
           </div>
           <div className="flex-1">
-            <p className="text-sm font-semibold text-gray-900">
+            <p id="alert-info-heading" className="text-sm font-semibold text-gray-900">
               Stay informed and safe
             </p>
             <p className="mt-1 text-sm text-gray-600">
@@ -593,23 +619,26 @@ export default function SignUp() {
       {/* Phone Number - REQUIRED */}
       <div className="rounded-2xl bg-white p-4 shadow-sm space-y-3">
         <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-          Phone Number <span className="text-red-500">*</span>
+          Phone Number <span className="text-red-500" aria-label="required">*</span>
         </label>
         <div className="relative">
-          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none" aria-hidden="true">
             <span className="text-gray-500 text-base">+1</span>
           </div>
           <input
             type="tel"
             id="phone"
             required
+            aria-required="true"
             value={formData.phone}
             onChange={handlePhoneChange}
             className="w-full rounded-xl border border-gray-300 pl-10 pr-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-gray-900"
             placeholder="(555) 123-4567"
+            aria-describedby="phone-hint"
+            inputMode="tel"
           />
         </div>
-        <p className="text-xs text-gray-500">
+        <p id="phone-hint" className="text-xs text-gray-500">
           US phone numbers only. Your number will be formatted as +1 (XXX) XXX-XXXX
         </p>
       </div>
@@ -626,35 +655,50 @@ export default function SignUp() {
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
           className="w-full rounded-xl border border-gray-300 px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-gray-900"
           placeholder="your@email.com"
+          aria-describedby="email-hint"
         />
-        <p className="text-xs text-gray-500">
+        <p id="email-hint" className="text-xs text-gray-500">
           Add your email to receive backup alerts and detailed information.
         </p>
       </div>
 
       {/* Location Detection - REQUIRED */}
-      <div className="rounded-2xl bg-white p-4 shadow-sm space-y-3">
-        <label className="text-sm font-medium text-gray-700">
-          Your Location <span className="text-red-500">*</span>
-        </label>
+      <fieldset className="rounded-2xl bg-white p-4 shadow-sm space-y-3">
+        <legend className="text-sm font-medium text-gray-700">
+          Your Location <span className="text-red-500" aria-label="required">*</span>
+        </legend>
         <p className="text-xs text-gray-500">
           We need your location to send you relevant disaster alerts
         </p>
 
         {/* Initial loading (first time only) */}
         {locationStatus === "loading" && !detectedLocation && !useManualLocation && (
-          <div className="flex items-center gap-3 rounded-xl border border-gray-200 px-3 py-3">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-900"></div>
+          <div 
+            className="flex items-center gap-3 rounded-xl border border-gray-200 px-3 py-3"
+            role="status"
+            aria-live="polite"
+          >
+            <div 
+              className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-900"
+              aria-hidden="true"
+            ></div>
             <span className="text-sm text-gray-600">Detecting your location...</span>
           </div>
         )}
 
         {/* Location detected successfully */}
         {locationStatus === "success" && detectedLocation && !useManualLocation && (
-          <div className="rounded-xl bg-green-50 border border-green-200 px-3 py-3">
+          <div 
+            className="rounded-xl bg-green-50 border border-green-200 px-3 py-3"
+            role="status"
+            aria-live="polite"
+          >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-green-900">✓ Location detected</p>
+                <p className="text-sm font-medium text-green-900">
+                  <span aria-hidden="true">✓ </span>
+                  Location detected
+                </p>
                 <p className="mt-1 text-xs text-green-700">
                   Lat: {parseFloat(detectedLocation.lat).toFixed(4)}, Lng: {parseFloat(detectedLocation.lng).toFixed(4)}
                 </p>
@@ -663,6 +707,7 @@ export default function SignUp() {
                 type="button"
                 onClick={() => detectLocation(true)}
                 className="text-xs text-green-700 underline hover:text-green-900"
+                aria-label="Refresh location"
               >
                 Refresh
               </button>
@@ -680,7 +725,11 @@ export default function SignUp() {
         {/* Location detection failed - prompt manual entry */}
         {locationStatus === "error" && !useManualLocation && (
           <div className="space-y-3">
-            <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-3">
+            <div 
+              className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-3"
+              role="alert"
+              aria-live="assertive"
+            >
               <p className="text-sm font-medium text-amber-900">
                 Unable to detect your location
               </p>
@@ -710,7 +759,7 @@ export default function SignUp() {
           <div className="space-y-3">
             <div>
               <label htmlFor="location-search" className="block text-xs font-medium text-gray-700 mb-1">
-                Search for your location <span className="text-red-500">*</span>
+                Search for your location <span className="text-red-500" aria-label="required">*</span>
               </label>
               <input
                 ref={autocompleteInputRef}
@@ -722,18 +771,24 @@ export default function SignUp() {
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
                 autoComplete="off"
                 inputMode="text"
+                aria-describedby="location-search-hint"
               />
             </div>
             
             {detectedLocation && useManualLocation && (
-              <div className="rounded-lg bg-green-50 border border-green-200 px-3 py-2">
+              <div 
+                className="rounded-lg bg-green-50 border border-green-200 px-3 py-2"
+                role="status"
+                aria-live="polite"
+              >
                 <p className="text-xs text-green-800">
-                  ✓ Location set: {parseFloat(detectedLocation.lat).toFixed(4)}, {parseFloat(detectedLocation.lng).toFixed(4)}
+                  <span aria-hidden="true">✓ </span>
+                  Location set: {parseFloat(detectedLocation.lat).toFixed(4)}, {parseFloat(detectedLocation.lng).toFixed(4)}
                 </p>
               </div>
             )}
             
-            <p className="text-xs text-gray-500">
+            <p id="location-search-hint" className="text-xs text-gray-500">
               💡 Start typing to search for any address, city, or landmark
             </p>
             
@@ -746,13 +801,17 @@ export default function SignUp() {
             </button>
           </div>
         )}
-      </div>
+      </fieldset>
 
       {/* Error Message */}
       {status === "error" && errorMessage && (
-        <div className="rounded-xl bg-red-50 border border-red-200 p-4">
+        <div 
+          className="rounded-xl bg-red-50 border border-red-200 p-4"
+          role="alert"
+          aria-live="assertive"
+        >
           <div className="flex items-start gap-3">
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0" aria-hidden="true">
               <svg className="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -773,13 +832,15 @@ export default function SignUp() {
       <button
         type="submit"
         disabled={!isFormValid || status === "loading"}
+        aria-disabled={!isFormValid || status === "loading"}
+        aria-busy={status === "loading"}
         className="w-full h-12 rounded-xl bg-gray-900 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition"
       >
         {status === "loading" ? "Registering..." : "Register for SMS Alerts"}
       </button>
 
       {/* Privacy Note */}
-      <div className="rounded-xl bg-gray-50 p-3">
+      <div className="rounded-xl bg-gray-50 p-3" role="note">
         <p className="text-xs text-gray-600">
           By registering, you agree to receive emergency SMS alerts. Standard messaging rates may apply. 
           You can unsubscribe anytime. We respect your privacy and will only use your phone number for disaster notifications.

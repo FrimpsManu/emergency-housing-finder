@@ -30,14 +30,8 @@ export default function Directions() {
 
   useEffect(() => {
     async function fetchDirections() {
-      if (!shelterLocation) {
-        setError("Location information not found. Please try selecting the shelter again.");
-        setLoading(false);
-        return;
-      }
-
-      if (!userLocation) {
-        setError("Your location not found. Please go back and allow location access.");
+      if (!shelterLocation || !userLocation) {
+        setError("Your location not found. We need to know your exact location to provide directions. Please go back and allow location access.");
         setLoading(false);
         return;
       }
@@ -105,14 +99,21 @@ export default function Directions() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div>
+        <div role="heading" aria-level={1}>
           <h1 className="text-2xl font-semibold text-gray-900">Directions</h1>
           <p className="mt-1 text-sm text-gray-600">Loading route...</p>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div 
+          className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
+          role="status"
+          aria-live="polite"
+        >
           <div className="flex items-center gap-3">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-900"></div>
+            <div 
+              className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-900"
+              aria-hidden="true"
+            ></div>
             <span className="text-sm text-gray-600">Loading directions...</span>
           </div>
         </div>
@@ -125,13 +126,17 @@ export default function Directions() {
     
     return (
       <div className="space-y-6">
-        <div>
+        <div role="heading" aria-level={1}>
           <h1 className="text-2xl font-semibold text-gray-900">Directions</h1>
           <p className="mt-1 text-sm text-gray-600">Unable to load route</p>
         </div>
 
         {isLocationError ? (
-          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
+          <div 
+            className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3"
+            role="alert"
+            aria-live="assertive"
+          >
             <p className="text-sm font-semibold text-gray-900">Location access required</p>
             <p className="text-sm text-gray-600">
               Turn-by-turn directions require your precise GPS location. Please enable location access in your browser.
@@ -152,7 +157,11 @@ export default function Directions() {
             </p>
           </div>
         ) : (
-          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div 
+            className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
+            role="alert"
+            aria-live="assertive"
+          >
             <p className="text-sm text-gray-800">{error || "Unable to load directions"}</p>
           </div>
         )}
@@ -166,6 +175,7 @@ export default function Directions() {
               target="_blank"
               rel="noopener noreferrer"
               className="block h-12 rounded-xl bg-gray-900 text-white font-semibold flex items-center justify-center"
+              aria-label="Open directions in Google Maps, opens in new tab"
             >
               Open in Google Maps
             </a>
@@ -185,17 +195,17 @@ export default function Directions() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
+      <div role="heading" aria-level={1}>
         <h1 className="text-2xl font-semibold text-gray-900">Directions</h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <p className="mt-1 text-sm text-gray-600" aria-label={`Route will take ${directions.totalDuration} and cover ${directions.totalDistance}`}>
           {directions.totalDuration} · {directions.totalDistance}
         </p>
       </div>
 
       {/* Travel Mode Selector */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
-        <label className="text-sm font-medium text-gray-700">Travel by</label>
-        <div className="grid grid-cols-3 gap-2">
+      <fieldset className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
+        <legend className="text-sm font-medium text-gray-700">Travel by</legend>
+        <div className="grid grid-cols-3 gap-2" role="radiogroup">
           <button
             onClick={() => handleTravelModeChange("DRIVING")}
             className={[
@@ -204,6 +214,8 @@ export default function Directions() {
                 ? "border-gray-900 bg-gray-900 text-white"
                 : "border-gray-200 bg-white text-gray-900 hover:bg-gray-50"
             ].join(" ")}
+            role="radio"
+            aria-checked={travelMode === "DRIVING"}
           >
             Drive
           </button>
@@ -215,6 +227,8 @@ export default function Directions() {
                 ? "border-gray-900 bg-gray-900 text-white"
                 : "border-gray-200 bg-white text-gray-900 hover:bg-gray-50"
             ].join(" ")}
+            role="radio"
+            aria-checked={travelMode === "WALKING"}
           >
             Walk
           </button>
@@ -226,53 +240,68 @@ export default function Directions() {
                 ? "border-gray-900 bg-gray-900 text-white"
                 : "border-gray-200 bg-white text-gray-900 hover:bg-gray-50"
             ].join(" ")}
+            role="radio"
+            aria-checked={travelMode === "TRANSIT"}
           >
             Transit
           </button>
         </div>
-      </div>
+      </fieldset>
 
       {/* Route Summary */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
-        <p className="text-sm font-medium text-gray-700">Route</p>
+      <div 
+        className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3"
+        role="region"
+        aria-labelledby="route-heading"
+      >
+        <p id="route-heading" className="text-sm font-medium text-gray-700">Route</p>
         
         <div className="space-y-2">
           <div className="flex items-start gap-2">
-            <div className="w-3 h-3 rounded-full bg-gray-900 mt-1.5 flex-shrink-0"></div>
+            <div className="w-3 h-3 rounded-full bg-gray-900 mt-1.5 flex-shrink-0" aria-label="Starting point"></div>
             <p className="text-sm text-gray-700">{directions.startAddress}</p>
           </div>
           <div className="flex items-start gap-2">
-            <div className="w-3 h-3 rounded-full bg-gray-400 mt-1.5 flex-shrink-0"></div>
+            <div className="w-3 h-3 rounded-full bg-gray-400 mt-1.5 flex-shrink-0" aria-label="Destination"></div>
             <p className="text-sm text-gray-700">{directions.endAddress}</p>
           </div>
         </div>
       </div>
 
       {/* Turn-by-turn Steps */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
-        <p className="text-sm font-medium text-gray-700">Step-by-step directions</p>
+      <div 
+        className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3"
+        role="region"
+        aria-labelledby="directions-heading"
+      >
+        <p id="directions-heading" className="text-sm font-medium text-gray-700">
+          Step-by-step directions
+        </p>
         
-        <div className="space-y-3">
+        <ol className="space-y-3" aria-label="Turn by turn directions">
           {directions.steps.map((step, index) => (
-            <div
+            <li
               key={index}
               className="flex gap-3 pb-3 border-b border-gray-100 last:border-0 last:pb-0"
             >
               <div className="flex-shrink-0">
-                <div className="w-7 h-7 rounded-full bg-gray-100 text-gray-700 font-semibold text-sm flex items-center justify-center">
+                <div 
+                  className="w-7 h-7 rounded-full bg-gray-100 text-gray-700 font-semibold text-sm flex items-center justify-center"
+                  aria-label={`Step ${index + 1}`}
+                >
                   {index + 1}
                 </div>
               </div>
               
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-gray-900 leading-relaxed mb-1">{step.instruction}</p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500" aria-label={`${step.distance}, taking ${step.duration}`}>
                   {step.distance} · {step.duration}
                 </p>
               </div>
-            </div>
+            </li>
           ))}
-        </div>
+        </ol>
       </div>
 
       {/* Open in Maps Button */}
@@ -282,6 +311,7 @@ export default function Directions() {
           target="_blank"
           rel="noopener noreferrer"
           className="block h-12 rounded-xl bg-gray-900 text-white font-semibold flex items-center justify-center"
+          aria-label="Open directions in Google Maps, opens in new tab"
         >
           Open in Google Maps
         </a>

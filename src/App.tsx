@@ -8,6 +8,7 @@ import Saved from "./pages/Saved";
 import SuggestUpdate from "./pages/SuggestUpdate";
 import SignUp from "./pages/SignUp";
 import Directions from "./pages/Directions";
+import ScrollToTop from "./components/ScrollToTop";
 
 export default function App() {
   return (
