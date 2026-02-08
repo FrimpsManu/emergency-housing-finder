@@ -15,7 +15,7 @@ function NavItem({ to, label }: { to: string; label: string }) {
             : "text-gray-700 hover:bg-gray-100",
         ].join(" ")
       }
-      aria-current={({ isActive }) => (isActive ? "page" : undefined)}
+      aria-current={({ isActive }) => (isActive ? "page" : undefined) as "page" | undefined}
     >
       {label}
     </NavLink>
