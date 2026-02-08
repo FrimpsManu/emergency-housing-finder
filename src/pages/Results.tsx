@@ -257,7 +257,7 @@ export default function Results() {
 
       {/* Active filters */}
       {activeChips.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Active filters">
           {activeChips.map((c) => (
             <button
               key={c.key}
@@ -265,7 +265,7 @@ export default function Results() {
               className="rounded-full bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-200"
               title="Remove filter"
             >
-              {c.label} ✕
+              {c.label} <span aria-hidden="true">✕</span>
             </button>
           ))}
           <button
@@ -292,7 +292,11 @@ export default function Results() {
 
       {/* Loading */}
       {loading && hasLocation && (
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div 
+          className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
+          role="status"
+          aria-live="polite"
+        >
           <div className="flex items-center gap-3">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-900"></div>
             <span className="text-sm text-gray-600">Finding housing options…</span>
@@ -459,8 +463,13 @@ export default function Results() {
       )}
 
       {/* Emergency fallback (always visible) */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
-        <p className="text-sm font-medium text-gray-900">Need help right now?</p>
+      <aside 
+        className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3"
+        aria-labelledby="emergency-help-heading"
+      >
+        <p id="emergency-help-heading" className="text-sm font-medium text-gray-900">
+          Need help right now?
+        </p>
         <p className="text-sm text-gray-600">
           If nothing matches or you’re unsure, calling a local support line is often the fastest
           path.
@@ -484,7 +493,7 @@ export default function Results() {
         <p className="text-xs text-gray-500">
           If you’re in immediate danger, call your local emergency number.
         </p>
-      </div>
+      </aside>
     </div>
   );
 }
